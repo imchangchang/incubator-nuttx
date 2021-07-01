@@ -281,8 +281,8 @@
 | Motor1 | PWM:PA8  | GPIO_TIM1_CH1OUT_1 |
 |        | INA:PC8  |                    |
 |        | INB:PC9  |                    |
-|        | E1:PA0   | GPIO_TIM2_CH1IN_1  |
-|        | E2:PA1   | GPIO_TIM2_CH2IN_2  |
+|        | E1:PA15  | GPIO_TIM2_CH1IN_2  |
+|        | E2:PB3   | GPIO_TIM2_CH2IN_2  |
 | Motor2 | PWM:PA9  | GPIO_TIM1_CH2OUT_1 |
 |        | PC6      |                    |
 |        | PC7      |                    |
@@ -296,8 +296,8 @@
 | Motor4 | PWM:PA11 | GPIO_TIM1_CH4OUT_1 |
 |        | PD12     |                    |
 |        | PD13     |                    |
-|        | PH10     | GPIO_TIM5_CH1IN_2  |
-|        | PH11     | GPIO_TIM5_CH2IN_2  |
+|        | PA0      | GPIO_TIM5_CH1IN_1  |
+|        | PA1      | GPIO_TIM5_CH2IN_1  |
 
 */
 
@@ -309,16 +309,16 @@
 #define GPIO_USART1_TX     GPIO_USART1_TX_1
 /*Motor*/
 #define MxGPIO_CONFIG(port) (port | GPIO_OUTPUT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_PULLDOWN | GPIO_OUTPUT_CLEAR)
-#define MOTOR_PWM_PATH "/dev/pwm"
+#define MOTOR_PWM_PATH "/dev/pwm0"
 //Motor1
 #define GPIO_TIM1_CH1OUT GPIO_TIM1_CH1OUT_1
 #define M1_A_PORT (GPIO_PORTC | GPIO_PIN8)
 #define M1_A_PORT_CONFIG MxGPIO_CONFIG(M1_A_PORT)
 #define M1_B_PORT (GPIO_PORTC | GPIO_PIN9)
-#define M1_B_PORT_CONFIG MxGPIO_CONFIG(M1_B_PORT)
-#define M1_QE_PATH "/dev/qe1"
-#define GPIO_TIM2_CH1IN GPIO_TIM2_CH1IN_1
-#define GPIO_TIM2_CH2IN GPIO_TIM2_CH2IN_1
+#define M1_B_PORT_CONFIG MxGPIO_CONFIG(M1_B_PORT)Hello
+#define M1_QE_PATH "/dev/qe0"
+#define GPIO_TIM2_CH1IN GPIO_TIM2_CH1IN_2
+#define GPIO_TIM2_CH2IN GPIO_TIM2_CH2IN_2
 
 //Motor2
 #define GPIO_TIM1_CH2OUT GPIO_TIM1_CH2OUT_1
@@ -326,7 +326,7 @@
 #define M2_A_PORT_CONFIG MxGPIO_CONFIG(M2_A_PORT)
 #define M2_B_PORT (GPIO_PORTC | GPIO_PIN7)
 #define M2_B_PORT_CONFIG MxGPIO_CONFIG(M2_B_PORT)
-#define M2_QE_PATH "/dev/qe2"
+#define M2_QE_PATH "/dev/qe1"
 #define GPIO_TIM3_CH1IN GPIO_TIM3_CH1IN_1
 #define GPIO_TIM3_CH2IN GPIO_TIM3_CH2IN_1
 
@@ -336,7 +336,7 @@
 #define M3_A_PORT_CONFIG MxGPIO_CONFIG(M3_A_PORT)
 #define M3_B_PORT (GPIO_PORTD | GPIO_PIN15)
 #define M3_B_PORT_CONFIG MxGPIO_CONFIG(M3_B_PORT)
-#define M3_QE_PATH "/dev/qe3"
+#define M3_QE_PATH "/dev/qe2"
 #define GPIO_TIM4_CH1IN GPIO_TIM4_CH1IN_1
 #define GPIO_TIM4_CH2IN GPIO_TIM4_CH2IN_1
 //Motor4
@@ -345,9 +345,9 @@
 #define M4_A_PORT_CONFIG MxGPIO_CONFIG(M4_A_PORT)
 #define M4_B_PORT (GPIO_PORTC | GPIO_PIN13)
 #define M4_B_PORT_CONFIG MxGPIO_CONFIG(M4_B_PORT)
-#define M4_QE_PATH "/dev/qe4"
-#define GPIO_TIM5_CH1IN GPIO_TIM5_CH1IN_2
-#define GPIO_TIM5_CH2IN GPIO_TIM5_CH2IN_2
+#define M4_QE_PATH "/dev/qe3"
+#define GPIO_TIM5_CH1IN GPIO_TIM5_CH1IN_1
+#define GPIO_TIM5_CH2IN GPIO_TIM5_CH2IN_1
 
 
 
