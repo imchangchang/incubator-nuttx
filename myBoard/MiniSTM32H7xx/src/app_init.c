@@ -11,6 +11,7 @@
 #include "stm32_lowputc.h"
 #include "stm32_qencoder.h"
 
+
 static void led_init(void)
 {
     stm32_configgpio(LED_GPIO_CONFIG);
