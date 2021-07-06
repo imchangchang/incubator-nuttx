@@ -20,6 +20,6 @@
 
 include $(TOPDIR)/Make.defs
 
-CSRCS += board_init.c app_init.c ll_motor.c
+CSRCS += board_init.c app_init.c ll_motor.c pid.c
 
 include $(TOPDIR)/boards/Board.mk

@@ -294,8 +294,8 @@
 |        | PD12     | GPIO_TIM4_CH1IN_2  |
 |        | PD13     | GPIO_TIM4_CH2IN_2  |
 | Motor4 | PWM:PA11 | GPIO_TIM1_CH4OUT_1 |
-|        | PD12     |                    |
 |        | PD11     |                    |
+|        | PD10     |                    |
 |        | PA0      | GPIO_TIM5_CH1IN_1  |
 |        | PA1      | GPIO_TIM5_CH2IN_1  |
 
@@ -314,7 +314,6 @@
 #define GPIO_I2C1_SCL      GPIO_I2C1_SCL_2 //PB8
 #define GPIO_I2C1_SDA      GPIO_I2C1_SDA_2 //PB9
 /*Motor*/
-#define MxGPIO_CONFIG(port) (port | GPIO_OUTPUT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_FLOAT | GPIO_OUTPUT_CLEAR)
 #define MOTOR_PWM_PATH "/dev/pwm0"
 //Motor1
 #define GPIO_TIM1_CH1OUT GPIO_TIM1_CH1OUT_1
@@ -341,8 +340,8 @@
 #define GPIO_TIM4_CH2IN GPIO_TIM4_CH2IN_2
 //Motor4
 #define GPIO_TIM1_CH4OUT GPIO_TIM1_CH4OUT_1
-#define M4_A_PORT (GPIO_PORTD | GPIO_PIN12)
-#define M4_B_PORT (GPIO_PORTD | GPIO_PIN11)
+#define M4_A_PORT (GPIO_PORTD | GPIO_PIN11)
+#define M4_B_PORT (GPIO_PORTD | GPIO_PIN10)
 #define M4_QE_PATH "/dev/qe3"
 #define GPIO_TIM5_CH1IN GPIO_TIM5_CH1IN_1
 #define GPIO_TIM5_CH2IN GPIO_TIM5_CH2IN_1

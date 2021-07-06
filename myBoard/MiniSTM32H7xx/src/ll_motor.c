@@ -2,125 +2,189 @@
 #include <nuttx/config.h>
 #include <debug.h>
 #include <assert.h>
+#include <string.h>
 #include <nuttx/timers/pwm.h>
 #include <nuttx/sensors/qencoder.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
 
 #include "arch/board/board.h"
 
 #include "stm32_gpio.h"
 #include "stm32_pwm.h"
 #include "stm32_qencoder.h"
+#include <stdio.h>
+#include "pid.h"
 
-static int ll_motor_setup(struct ll_motor_dev_s * dev, bool direction);
-static int ll_motor_get_pos(struct ll_motor_dev_s * dev, int32_t * pos);
-static int ll_motor_set_pwm(struct ll_motor_dev_s * dev, int16_t pwm);
-static int ll_motor_start(struct ll_motor_dev_s * dev);
-static int ll_motor_stop(struct ll_motor_dev_s * dev);
-static int ll_motor_break(struct ll_motor_dev_s * dev);
+#define PWM_FREQ (1000)
+#define MOTOR_WORK_DT (10) //ms
+#define MOTOR_WORK_TICKS (MSEC_PER_TICK / (MOTOR_WORK_DT))
+#define LOG_WORK (1)
+static void set_pwm(uint8_t chlx, int32_t duty);
 
-
-static const struct ll_motor_ops g_motor_ops = 
+struct ll_motor_s
 {
-    .setup = ll_motor_setup,    
-    .get_pos = ll_motor_get_pos,
-    .set_pwm = ll_motor_set_pwm,
-    .start = ll_motor_start,
-    .stop = ll_motor_stop,
-    .brk = ll_motor_break
-};
-
-static void ll_motor_set_tim_pwm(int32_t chl, int32_t pwm);
-static void ll_motor_pwm_init(void);
-
-static const struct ll_motor_dev_s g_motor_dev[] = 
-{
-    {
-        .ops = &g_motor_ops,
-        .direction = false,
-        .id = 1,
-        .encoder_dev = "/dev/qe0",
-        .encoder_idx = 2,
-        .fd_encoder = 0,
-        .gpio_a_pin = M1_A_PORT,
-        .gpio_b_pin = M1_B_PORT,
-        .pwm_chl = 1,
-        .set_tim_pwm = ll_motor_set_tim_pwm,
-    },
-};
-
-struct ll_motor_pwm_s 
-{
-    bool init;
-    char * pwm_dev;
-    int pwm_idx;
-    int pwm_fd;
-    int32_t duty[4];
-
-}g_motor_pwm = 
-{
-    .init = false,
-    .pwm_dev = "/dev/pwm0",
-    .pwm_idx = 1,
-    .pwm_fd = 0,
-};
-
-
-static int ll_motor_setup(struct ll_motor_dev_s * dev, bool direction)
-{
-    int ret;
-    // check if need init pwm first
-    ll_motor_pwm_init();
+    struct qe_lowerhalf_s *qe;
+    uint8_t qe_chl;
+    uint8_t pwm_chl;
+    uint32_t a_pin;
+    uint32_t b_pin;
     //
-    ret = stm32_qeinitialize(dev->encoder_dev, dev->encoder_idx);
-    assert(ret == OK);
+    clock_t last_clock;
+    float spd;
+    PID_t pid;
+};
 
-    stm32_configgpio(MxGPIO_CONFIG(dev->gpio_a_pin));
-    stm32_configgpio(MxGPIO_CONFIG(dev->gpio_b_pin));
+static struct pwm_lowerhalf_s *g_pwm_lowerhalf;
+static uint32_t g_pwm_duty[4];
 
+struct work_s g_motor_work;
 
-    dev->fd_encoder = open(dev->encoder_dev);
+static struct ll_motor_s g_motor[4] =
+    {
+        {
+            .qe_chl = 2,
+            .pwm_chl = 0,
+            .a_pin = M1_A_PORT,
+            .b_pin = M1_B_PORT,
+        },
+        {
+            .qe_chl = 3,
+            .pwm_chl = 1,
+            .a_pin = M2_A_PORT,
+            .b_pin = M2_B_PORT,
+        },
+        {
+            .qe_chl = 4,
+            .pwm_chl = 2,
+            .a_pin = M3_A_PORT,
+            .b_pin = M3_B_PORT,
+        },
+        {
+            .qe_chl = 5,
+            .pwm_chl = 3,
+            .a_pin = M4_A_PORT,
+            .b_pin = M4_B_PORT,
+        },
+};
+#define MOTOR_WORK_REPEAT() work_queue(HPWORK, &g_motor_work, motor_worker, (void *)g_motor, MOTOR_WORK_TICKS)
+static void motor_worker(FAR void *arg)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)arg;
+    for (int i = 0; i < 4; i++)
+    {
+        int32_t cur_pos;
+        motor[i].qe->ops->position(motor[i].qe, &cur_pos);
+        clock_t cur_clock = clock();
+        motor[i].qe->ops->reset(motor[i].qe);
 
-    return OK;
+        float time_diff_sec = (float)(cur_clock - motor[i].last_clock) / TICK_PER_SEC;
+        motor[i].spd = cur_pos / time_diff_sec;
+        motor[i].last_clock = cur_clock;
+
+        float pwm = pid_calculate(&motor[i].pid, 500, motor[i].spd, 0, time_diff_sec);
+        set_pwm(i, pwm);
+    }
+    MOTOR_WORK_REPEAT();
 }
 
-static int ll_motor_get_pos(struct ll_motor_dev_s * dev, int32_t * pos)
+#define MnGPIO_CONFIG(port) (port | GPIO_OUTPUT | GPIO_SPEED_50MHz | GPIO_PUSHPULL | GPIO_FLOAT | GPIO_OUTPUT_CLEAR)
+
+#if LOG_WORK
+struct work_s g_log_work;
+#define LOG_WORK_REPEAT() work_queue(LPWORK, &g_log_work, log_worker, (void *)NULL, SEC2TICK(0.1))
+
+static void log_worker(FAR void *arg)
 {
-    return OK;
+    for (int i = 0; i < 4; i++)
+    {
+        printf("(%5d %6.1f) ", g_pwm_duty[i], g_motor[i].spd);
+    }
+    printf("\n");
+
+    fflush(stdout);
+    LOG_WORK_REPEAT();
 }
-static int ll_motor_set_pwm(struct ll_motor_dev_s * dev, int16_t pwm)
+#endif
+
+static void _set_pwm(uint32_t duty1, uint32_t duty2, uint32_t duty3, uint32_t duty4)
 {
-    return OK;
-}
-static int ll_motor_start(struct ll_motor_dev_s * dev)
-{
-    return OK;
-}
-static int ll_motor_stop(struct ll_motor_dev_s * dev)
-{
-    return OK;
-}
-static int ll_motor_break(struct ll_motor_dev_s * dev)
-{
-    return OK;
+    struct pwm_info_s pwm_info =
+        {
+            .frequency = PWM_FREQ,
+            .channels =
+                {
+                    {duty1, 1},
+                    {duty2, 2},
+                    {duty3, 3},
+                    {duty4, 4},
+                }};
+    g_pwm_lowerhalf->ops->start(g_pwm_lowerhalf, &pwm_info);
 }
 
-
-static void ll_motor_set_tim_pwm(int32_t chl, int32_t pwm)
+static void set_pwm(uint8_t chlx, int32_t duty)
 {
-    g_motor_pwm.duty[chl] = pwm;
-    //update pwm here
-    //TODO
+    if (duty > 0)
+    {
+        stm32_gpiowrite(g_motor[chlx].a_pin, false);
+        stm32_gpiowrite(g_motor[chlx].b_pin, true);
+    }
+    else
+    {
+        stm32_gpiowrite(g_motor[chlx].a_pin, true);
+        stm32_gpiowrite(g_motor[chlx].b_pin, false);
+        duty = -duty;
+    }
+
+    g_pwm_duty[chlx] = duty;
+
+    _set_pwm(g_pwm_duty[0],
+             g_pwm_duty[1],
+             g_pwm_duty[2],
+             g_pwm_duty[3]);
 }
 
-static void ll_motor_pwm_init(void)
+static void motor_break(uint8_t chlx)
 {
-    if (g_motor_pwm.init)
-        return;
+    stm32_gpiowrite(g_motor[chlx].a_pin, true);
+    stm32_gpiowrite(g_motor[chlx].b_pin, true);
+    g_pwm_duty[chlx] = 0xffff;
+    _set_pwm(g_pwm_duty[0],
+             g_pwm_duty[1],
+             g_pwm_duty[2],
+             g_pwm_duty[3]);
+}
 
-    g_motor_pwm.init = true;
-    struct pwm_lowerhalf_s *pwm_lowerhalf = stm32_pwminitialize(g_motor_pwm.pwm_idx);
-    int ret = pwm_register(g_motor_pwm.pwm_dev, pwm_lowerhalf);
-    assert(ret == OK);
+static void motor_release(uint8_t chlx)
+{
+    stm32_gpiowrite(g_motor[chlx].a_pin, false);
+    stm32_gpiowrite(g_motor[chlx].b_pin, false);
+    g_pwm_duty[chlx] = 0;
+}
 
-    g_motor_pwm.pwm_fd = open(g_motor_pwm.pwm_dev);
+void ll_motor_initialize(void)
+{
+    const char *dev_name[4] =
+        {
+            "/dev/qe0",
+            "/dev/qe1",
+            "/dev/qe2",
+            "/dev/qe3",
+        };
+    for (int i = 0; i < 4; i++)
+    {
+        g_motor[i].qe = (struct qe_lowerhalf_s *)stm32_qeinitialize(dev_name[i], g_motor[i].qe_chl);
+        g_motor[i].qe->ops->setup(g_motor[i].qe);
+
+        stm32_configgpio(MnGPIO_CONFIG(g_motor[i].a_pin));
+        stm32_configgpio(MnGPIO_CONFIG(g_motor[i].b_pin));
+        pid_init(&g_motor[i].pid, PID_MODE_DERIVATIV_CALC, MOTOR_WORK_DT / 1000);
+        pid_set_parameters(&g_motor[i].pid, 60, 30, 0, 65535, 65535);
+    }
+    g_pwm_lowerhalf = stm32_pwminitialize(1);
+    g_pwm_lowerhalf->ops->setup(g_pwm_lowerhalf);
+    MOTOR_WORK_REPEAT();
+#if LOG_WORK
+    LOG_WORK_REPEAT();
+#endif
 }

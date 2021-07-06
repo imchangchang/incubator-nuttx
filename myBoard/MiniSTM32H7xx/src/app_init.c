@@ -13,6 +13,7 @@
 #include "stm32_lowputc.h"
 #include "stm32_qencoder.h"
 #include "stm32_i2c.h"
+#include "ll_motor.h"
 
 static void led_init(void)
 {
@@ -21,9 +22,6 @@ static void led_init(void)
 
 static void pwm_init(void)
 {
-    struct pwm_lowerhalf_s *pwm_lowerhalf = stm32_pwminitialize(1);
-    int ret = pwm_register(MOTOR_PWM_PATH, pwm_lowerhalf);
-    assert(ret == OK);
 }
 
 static void qe_init(void)
@@ -119,14 +117,13 @@ void oled_init(void)
     }
 }
 
+
 int board_app_initialize(uintptr_t arg)
 {
 
     led_init();
-    pwm_init();
-    qe_init();
     m_gpio_init();
-    oled_init();
+    ll_motor_initialize();
 
     return OK;
 }

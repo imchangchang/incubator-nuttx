@@ -1169,7 +1169,7 @@ int stm32_qeinitialize(FAR const char *devpath, int tim)
   /* The driver is now in-use */
 
   priv->inuse = true;
-  return OK;
+  return priv;
 }
 
 #endif /* CONFIG_SENSORS_QENCODER */
