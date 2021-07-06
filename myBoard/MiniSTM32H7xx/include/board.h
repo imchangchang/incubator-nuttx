@@ -291,11 +291,11 @@
 | Motor3 | PWM:PA10 | GPIO_TIM1_CH3OUT_1 |
 |        | PD14     |                    |
 |        | PD15     |                    |
-|        | PB6      | GPIO_TIM4_CH1IN_1  |
-|        | PB7      | GPIO_TIM4_CH2IN_1  |
+|        | PD12     | GPIO_TIM4_CH1IN_2  |
+|        | PD13     | GPIO_TIM4_CH2IN_2  |
 | Motor4 | PWM:PA11 | GPIO_TIM1_CH4OUT_1 |
 |        | PD12     |                    |
-|        | PD13     |                    |
+|        | PD11     |                    |
 |        | PA0      | GPIO_TIM5_CH1IN_1  |
 |        | PA1      | GPIO_TIM5_CH2IN_1  |
 
@@ -308,8 +308,11 @@
 #define GPIO_USART1_RX     GPIO_USART1_RX_1
 #define GPIO_USART1_TX     GPIO_USART1_TX_1
 /*UART2*/
-#define GPIO_USART2_RX     GPIO_USART2_RX_2
-#define GPIO_USART2_TX     GPIO_USART2_TX_2
+#define GPIO_USART2_RX     GPIO_USART2_RX_2 //PD6
+#define GPIO_USART2_TX     GPIO_USART2_TX_2 //PD5
+/*I2C1*/
+#define GPIO_I2C1_SCL      GPIO_I2C1_SCL_2 //PB8
+#define GPIO_I2C1_SDA      GPIO_I2C1_SDA_2 //PB9
 /*Motor*/
 #define MxGPIO_CONFIG(port) (port | GPIO_OUTPUT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_FLOAT | GPIO_OUTPUT_CLEAR)
 #define MOTOR_PWM_PATH "/dev/pwm0"
@@ -334,12 +337,12 @@
 #define M3_A_PORT (GPIO_PORTD | GPIO_PIN14)
 #define M3_B_PORT (GPIO_PORTD | GPIO_PIN15)
 #define M3_QE_PATH "/dev/qe2"
-#define GPIO_TIM4_CH1IN GPIO_TIM4_CH1IN_1
-#define GPIO_TIM4_CH2IN GPIO_TIM4_CH2IN_1
+#define GPIO_TIM4_CH1IN GPIO_TIM4_CH1IN_2
+#define GPIO_TIM4_CH2IN GPIO_TIM4_CH2IN_2
 //Motor4
 #define GPIO_TIM1_CH4OUT GPIO_TIM1_CH4OUT_1
-#define M4_A_PORT (GPIO_PORTC | GPIO_PIN12)
-#define M4_B_PORT (GPIO_PORTC | GPIO_PIN13)
+#define M4_A_PORT (GPIO_PORTD | GPIO_PIN12)
+#define M4_B_PORT (GPIO_PORTD | GPIO_PIN11)
 #define M4_QE_PATH "/dev/qe3"
 #define GPIO_TIM5_CH1IN GPIO_TIM5_CH1IN_1
 #define GPIO_TIM5_CH2IN GPIO_TIM5_CH2IN_1
