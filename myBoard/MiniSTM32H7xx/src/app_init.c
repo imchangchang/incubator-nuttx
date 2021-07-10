@@ -53,7 +53,7 @@ static void i2c_send(uint8_t reg, uint8_t regval)
     txbuffer[1] = regval;
 
     msg.frequency = 100000;
-    msg.addr = 0x78;
+    msg.addr = 0x3c;
     msg.flags = 0;
     msg.buffer = txbuffer;
     msg.length = 2;
@@ -124,6 +124,7 @@ int board_app_initialize(uintptr_t arg)
     led_init();
     m_gpio_init();
     ll_motor_initialize();
+    // oled_init();
 
     return OK;
 }
