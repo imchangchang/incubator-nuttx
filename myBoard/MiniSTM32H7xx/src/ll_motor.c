@@ -19,11 +19,19 @@
 #define PWM_FREQ (1000)
 #define MOTOR_WORK_DT (10) //ms
 #define MOTOR_WORK_TICKS (MSEC_PER_TICK / (MOTOR_WORK_DT))
-#define LOG_WORK (1)
+#define LOG_WORK (0)
 
 #define MAX_SPEED (4000)
 #define MIN_SPEED (500)
 static void set_pwm(uint8_t chlx, int32_t duty);
+static void motor_break(uint8_t chlx);
+static void motor_release(uint8_t chlx);
+enum motor_status_e
+{
+    MOTOR_STOP, //no output
+    MOTOR_BREAK,
+    MOTOR_PID, //in pid control
+};
 
 struct ll_motor_s
 {
@@ -37,6 +45,7 @@ struct ll_motor_s
     float spd;
     PID_t pid;
     float last_pwm;
+    enum motor_status_e status;
 };
 
 static struct pwm_lowerhalf_s *g_pwm_lowerhalf;
@@ -86,20 +95,29 @@ static void motor_worker(FAR void *arg)
         motor[i].spd = cur_pos / time_diff_sec;
         motor[i].last_clock = cur_clock;
 
-        float pwm = pid_calculate(&motor[i].pid, 500, motor[i].spd, 0, time_diff_sec);
+        if (motor[i].status == MOTOR_PID)
+        {
+            float pwm = pid_calculate(&motor[i].pid, 500, motor[i].spd, 0, time_diff_sec);
 #define MAX_ACC (65535 * 0.1)
-        if (pwm >= motor[i].last_pwm + MAX_ACC)
-        {
-            pwm = motor[i].last_pwm + MAX_ACC;
-        }
-        else if (pwm <= motor[i].last_pwm - MAX_ACC)
-        {
-            pwm = motor[i].last_pwm - MAX_ACC;
-        }
+            if (pwm >= motor[i].last_pwm + MAX_ACC)
+            {
+                pwm = motor[i].last_pwm + MAX_ACC;
+            }
+            else if (pwm <= motor[i].last_pwm - MAX_ACC)
+            {
+                pwm = motor[i].last_pwm - MAX_ACC;
+            }
 #undef MAX_ACC
-        set_pwm(i, pwm);
-        motor[i].last_pwm = pwm;
-        // set_pwm(i, 65535*(0.4));
+            set_pwm(i, pwm);
+            motor[i].last_pwm = pwm;
+        }
+        else if (motor[i].status== MOTOR_BREAK)
+        {
+            motor_break(i);
+        }
+        else{
+            motor_release(i);
+        }
     }
     MOTOR_WORK_REPEAT();
 }
@@ -196,6 +214,8 @@ void ll_motor_initialize(void)
         stm32_configgpio(MnGPIO_CONFIG(g_motor[i].b_pin));
         pid_init(&g_motor[i].pid, PID_MODE_DERIVATIV_CALC, MOTOR_WORK_DT / 1000);
         pid_set_parameters(&g_motor[i].pid, 50, 40, 1, 65535, 65535);
+
+        g_motor[i].status = MOTOR_STOP;
     }
     g_pwm_lowerhalf = stm32_pwminitialize(1);
     g_pwm_lowerhalf->ops->setup(g_pwm_lowerhalf);
