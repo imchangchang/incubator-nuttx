@@ -19,7 +19,7 @@
 #define PWM_FREQ (1000)
 #define MOTOR_WORK_DT (10) //ms
 #define MOTOR_WORK_TICKS (MSEC_PER_TICK / (MOTOR_WORK_DT))
-#define LOG_WORK (1)
+#define LOG_WORK (0)
 
 #define MAX_SPEED (4000)
 #define MIN_SPEED (500)
@@ -229,7 +229,7 @@ void ll_motor_initialize(void)
         stm32_configgpio(MnGPIO_CONFIG(g_motor[i].b_pin));
         pid_init(&g_motor[i].pid, PID_MODE_DERIVATIV_CALC, MOTOR_WORK_DT / 1000);
         pid_set_parameters(&g_motor[i].pid, 50, 40, 1, 65535, 65535);
-        g_motor[i].status = MOTOR_PID;
+        g_motor[i].status = MOTOR_STOP;
 
     }
     g_pwm_lowerhalf = stm32_pwminitialize(1);
