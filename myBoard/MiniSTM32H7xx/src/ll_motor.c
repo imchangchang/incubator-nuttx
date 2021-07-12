@@ -19,7 +19,7 @@
 #define PWM_FREQ (1000)
 #define MOTOR_WORK_DT (10) //ms
 #define MOTOR_WORK_TICKS (MSEC_PER_TICK / (MOTOR_WORK_DT))
-#define LOG_WORK (0)
+#define LOG_WORK (1)
 
 #define MAX_SPEED (4000)
 #define MIN_SPEED (500)
@@ -54,32 +54,37 @@ static uint32_t g_pwm_duty[4];
 struct work_s g_motor_work;
 
 static struct ll_motor_s g_motor[4] =
+{
     {
-        {
-            .qe_chl = 2,
-            .pwm_chl = 0,
-            .a_pin = M1_A_PORT,
-            .b_pin = M1_B_PORT,
-        },
-        {
-            .qe_chl = 3,
-            .pwm_chl = 1,
-            .a_pin = M2_A_PORT,
-            .b_pin = M2_B_PORT,
-        },
-        {
-            .qe_chl = 4,
-            .pwm_chl = 2,
-            .a_pin = M3_A_PORT,
-            .b_pin = M3_B_PORT,
-        },
-        {
-            .qe_chl = 5,
-            .pwm_chl = 3,
-            .a_pin = M4_A_PORT,
-            .b_pin = M4_B_PORT,
-        },
+        .qe_chl = 2,
+        .pwm_chl = 0,
+        .a_pin = M1_A_PORT,
+        .b_pin = M1_B_PORT,
+    },
+    {
+        .qe_chl = 3,
+        .pwm_chl = 1,
+        .a_pin = M2_A_PORT,
+        .b_pin = M2_B_PORT,
+    },
+    {
+        .qe_chl = 4,
+        .pwm_chl = 2,
+        .a_pin = M3_A_PORT,
+        .b_pin = M3_B_PORT,
+    },
+    {
+        .qe_chl = 5,
+        .pwm_chl = 3,
+        .a_pin = M4_A_PORT,
+        .b_pin = M4_B_PORT,
+    },
 };
+
+static bool motor_locked(void)
+{
+    return !stm32_gpioread(MOTOR_SW_PORT);
+}
 #define MOTOR_WORK_REPEAT() work_queue(HPWORK, &g_motor_work, motor_worker, (void *)g_motor, MOTOR_WORK_TICKS)
 static void motor_worker(FAR void *arg)
 {
@@ -95,29 +100,35 @@ static void motor_worker(FAR void *arg)
         motor[i].spd = cur_pos / time_diff_sec;
         motor[i].last_clock = cur_clock;
 
-        if (motor[i].status == MOTOR_PID)
+        if (motor_locked())
         {
-            float pwm = pid_calculate(&motor[i].pid, 500, motor[i].spd, 0, time_diff_sec);
-#define MAX_ACC (65535 * 0.1)
-            if (pwm >= motor[i].last_pwm + MAX_ACC)
-            {
-                pwm = motor[i].last_pwm + MAX_ACC;
-            }
-            else if (pwm <= motor[i].last_pwm - MAX_ACC)
-            {
-                pwm = motor[i].last_pwm - MAX_ACC;
-            }
-#undef MAX_ACC
-            set_pwm(i, pwm);
-            motor[i].last_pwm = pwm;
-        }
-        else if (motor[i].status== MOTOR_BREAK)
-        {
-            motor_break(i);
-        }
-        else{
             motor_release(i);
         }
+        else {
+            if (motor[i].status == MOTOR_PID)
+            {
+                float pwm = pid_calculate(&motor[i].pid, 1000, motor[i].spd, 0, time_diff_sec);
+#define MAX_ACC (65535 * 0.1)
+                if (pwm >= motor[i].last_pwm + MAX_ACC)
+                {
+                    pwm = motor[i].last_pwm + MAX_ACC;
+                }
+                else if (pwm <= motor[i].last_pwm - MAX_ACC)
+                {
+                    pwm = motor[i].last_pwm - MAX_ACC;
+                }
+#undef MAX_ACC
+                set_pwm(i, pwm);
+                motor[i].last_pwm = pwm;
+            }
+            else if (motor[i].status== MOTOR_BREAK)
+            {
+                motor_break(i);
+            }
+            else {
+                motor_release(i);
+            }
+        } //else motor_locked()
     }
     MOTOR_WORK_REPEAT();
 }
@@ -126,7 +137,7 @@ static void motor_worker(FAR void *arg)
 
 #if LOG_WORK
 struct work_s g_log_work;
-#define LOG_WORK_REPEAT() work_queue(LPWORK, &g_log_work, log_worker, (void *)NULL, SEC2TICK(0.1))
+#define LOG_WORK_REPEAT() work_queue(LPWORK, &g_log_work, log_worker, (void *)NULL, SEC2TICK(1))
 
 static void log_worker(FAR void *arg)
 {
@@ -134,7 +145,7 @@ static void log_worker(FAR void *arg)
     {
         printf("(%5d %6.1f) ", g_pwm_duty[i], g_motor[i].spd);
     }
-    printf("\n");
+    printf(" (%d) \n", stm32_gpioread(MOTOR_SW_PORT));
 
     fflush(stdout);
     LOG_WORK_REPEAT();
@@ -144,15 +155,16 @@ static void log_worker(FAR void *arg)
 static void _set_pwm(uint32_t duty1, uint32_t duty2, uint32_t duty3, uint32_t duty4)
 {
     struct pwm_info_s pwm_info =
+    {
+        .frequency = PWM_FREQ,
+        .channels =
         {
-            .frequency = PWM_FREQ,
-            .channels =
-                {
-                    {duty1, 1},
-                    {duty2, 2},
-                    {duty3, 3},
-                    {duty4, 4},
-                }};
+            {duty1, 1},
+            {duty2, 2},
+            {duty3, 3},
+            {duty4, 4},
+        }
+    };
     g_pwm_lowerhalf->ops->start(g_pwm_lowerhalf, &pwm_info);
 }
 
@@ -196,15 +208,18 @@ static void motor_release(uint8_t chlx)
     g_pwm_duty[chlx] = 0;
 }
 
+
+
 void ll_motor_initialize(void)
 {
     const char *dev_name[4] =
-        {
-            "/dev/qe0",
-            "/dev/qe1",
-            "/dev/qe2",
-            "/dev/qe3",
-        };
+    {
+        "/dev/qe0",
+        "/dev/qe1",
+        "/dev/qe2",
+        "/dev/qe3",
+    };
+    stm32_configgpio(MOTOR_SW_GPIO_CONFIG);
     for (int i = 0; i < 4; i++)
     {
         g_motor[i].qe = (struct qe_lowerhalf_s *)stm32_qeinitialize(dev_name[i], g_motor[i].qe_chl);
@@ -214,8 +229,8 @@ void ll_motor_initialize(void)
         stm32_configgpio(MnGPIO_CONFIG(g_motor[i].b_pin));
         pid_init(&g_motor[i].pid, PID_MODE_DERIVATIV_CALC, MOTOR_WORK_DT / 1000);
         pid_set_parameters(&g_motor[i].pid, 50, 40, 1, 65535, 65535);
+        g_motor[i].status = MOTOR_PID;
 
-        g_motor[i].status = MOTOR_STOP;
     }
     g_pwm_lowerhalf = stm32_pwminitialize(1);
     g_pwm_lowerhalf->ops->setup(g_pwm_lowerhalf);

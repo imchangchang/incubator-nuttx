@@ -298,6 +298,7 @@
 |        | PD10     |                    |
 |        | PA0      | GPIO_TIM5_CH1IN_1  |
 |        | PA1      | GPIO_TIM5_CH2IN_1  |
+| SW     | PB13     | Low for ON         |
 
 */
 
@@ -315,6 +316,8 @@
 #define GPIO_I2C1_SDA      GPIO_I2C1_SDA_2 //PB9
 /*Motor*/
 #define MOTOR_PWM_PATH "/dev/pwm0"
+#define MOTOR_SW_PORT   (GPIO_PORTB | GPIO_PIN13)
+#define MOTOR_SW_GPIO_CONFIG (MOTOR_SW_PORT | GPIO_INPUT |GPIO_SPEED_2MHz| GPIO_PULLUP)
 //Motor1
 #define GPIO_TIM1_CH1OUT GPIO_TIM1_CH1OUT_1
 #define M1_A_PORT (GPIO_PORTC | GPIO_PIN8)
