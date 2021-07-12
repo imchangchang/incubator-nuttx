@@ -26,10 +26,28 @@
 static void set_pwm(uint8_t chlx, int32_t duty);
 static void motor_break(uint8_t chlx);
 static void motor_release(uint8_t chlx);
+
+
+static int motor_open(FAR struct file * filep);
+static int motor_close(FAR struct file * filep);
+static ssize_t motor_read(FAR struct file * filep, FAR char * buffer, size_t buflen);
+static ssize_t motor_write(FAR struct file * filep, FAR char * buffer, size_t buflen);
+static int motor_ioctl(FAR struct file * filep, int cmd, unsigned long arg);
+
+static const struct file_operations g_motorops =
+{
+    .open = motor_open,
+    .close = motor_close,
+    .read = motor_read,
+    .write = motor_write,
+    .ioctl = motor_ioctl
+};
+
 enum motor_status_e
 {
     MOTOR_STOP, //no output
     MOTOR_BREAK,
+    MOTOR_PWM,
     MOTOR_PID, //in pid control
 };
 
@@ -46,6 +64,8 @@ struct ll_motor_s
     PID_t pid;
     float last_pwm;
     enum motor_status_e status;
+    int32_t sp_pwm;
+    int32_t sp_spd;
 };
 
 static struct pwm_lowerhalf_s *g_pwm_lowerhalf;
@@ -107,7 +127,7 @@ static void motor_worker(FAR void *arg)
         else {
             if (motor[i].status == MOTOR_PID)
             {
-                float pwm = pid_calculate(&motor[i].pid, 1000, motor[i].spd, 0, time_diff_sec);
+                float pwm = pid_calculate(&motor[i].pid, motor[i].sp_spd, motor[i].spd, 0, time_diff_sec);
 #define MAX_ACC (65535 * 0.1)
                 if (pwm >= motor[i].last_pwm + MAX_ACC)
                 {
@@ -121,12 +141,19 @@ static void motor_worker(FAR void *arg)
                 set_pwm(i, pwm);
                 motor[i].last_pwm = pwm;
             }
+            else if (motor[i].status == MOTOR_PWM)
+            {
+                set_pwm(i, motor[i].sp_pwm);
+                motor[i].last_pwm = motor[i].sp_pwm;
+            }
             else if (motor[i].status== MOTOR_BREAK)
             {
                 motor_break(i);
+                motor[i].last_pwm = 0;
             }
             else {
                 motor_release(i);
+                motor[i].last_pwm = 0;
             }
         } //else motor_locked()
     }
@@ -209,6 +236,86 @@ static void motor_release(uint8_t chlx)
 }
 
 
+static int motor_open(FAR struct file * filep)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    motor->status = MOTOR_STOP;
+    return OK;
+}
+static int motor_close(FAR struct file * filep)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    motor->status = MOTOR_STOP;
+    return OK;
+}
+static ssize_t motor_read(FAR struct file * filep, FAR char * buffer, size_t buflen)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    if (buflen < sizeof(motor->spd))
+    {
+        return -1;
+    }
+    memcpy(buffer, &motor->spd,sizeof(motor->spd));
+    return sizeof(motor->spd);
+}
+
+static ssize_t motor_write(FAR struct file * filep, FAR char * buffer, size_t buflen)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    int32_t sp;
+
+    memcpy(&sp, buffer, sizeof(int32_t));
+
+    if (motor->status == MOTOR_PWM)
+    {
+        motor->sp_pwm = (int32_t)((float)sp/100 * 65535);
+    }
+    else if (motor->status == MOTOR_PID)
+    {
+        int _sp_spd = (int32_t)((float)sp/100 * MAX_SPEED);
+        if (_sp_spd < MIN_SPEED)
+        {
+            _sp_spd = 0;
+        }
+        motor->sp_spd = _sp_spd;
+    }
+    else {
+        motor->sp_pwm = 0;
+        motor->sp_spd = 0;
+    }
+    return OK;
+}
+static int motor_ioctl(FAR struct file * filep, int cmd, unsigned long arg)
+{
+    struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    switch (cmd)
+    {
+    case MOTOR_STOP: //no output
+        motor->status = MOTOR_STOP;
+        motor->sp_pwm = 0;
+        motor->sp_spd= 0;
+        break;
+    case MOTOR_BREAK:
+        motor->status = MOTOR_BREAK;
+        motor->sp_pwm = 0;
+        motor->sp_spd= 0;
+        break;
+    case MOTOR_PWM:
+        motor->status = MOTOR_PWM;
+        motor->sp_pwm = 0;
+        break;
+    case MOTOR_PID: //in pid control
+        motor->status = MOTOR_PID;
+        motor->sp_spd= 0;
+        break;
+    default:
+        motor->status = MOTOR_STOP;
+        motor->sp_pwm = 0;
+        motor->sp_spd= 0;
+        break;
+    }
+    return OK;
+}
 
 void ll_motor_initialize(void)
 {
@@ -218,6 +325,13 @@ void ll_motor_initialize(void)
         "/dev/qe1",
         "/dev/qe2",
         "/dev/qe3",
+    };
+    const char *mdev_name[4] =
+    {
+        "/dev/motor0",
+        "/dev/motor1",
+        "/dev/motor2",
+        "/dev/motor3",
     };
     stm32_configgpio(MOTOR_SW_GPIO_CONFIG);
     for (int i = 0; i < 4; i++)
@@ -231,6 +345,7 @@ void ll_motor_initialize(void)
         pid_set_parameters(&g_motor[i].pid, 50, 40, 1, 65535, 65535);
         g_motor[i].status = MOTOR_STOP;
 
+        register_driver(mdev_name[i], &g_motorops, 777, (intptr_t)&g_motor[i]);
     }
     g_pwm_lowerhalf = stm32_pwminitialize(1);
     g_pwm_lowerhalf->ops->setup(g_pwm_lowerhalf);
