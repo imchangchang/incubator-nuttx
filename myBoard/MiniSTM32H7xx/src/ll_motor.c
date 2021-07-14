@@ -21,7 +21,7 @@
 #define MOTOR_WORK_TICKS (MSEC_PER_TICK / (MOTOR_WORK_DT))
 #define LOG_WORK (0)
 
-#define MAX_SPEED (4000)
+#define MAX_SPEED (3000)
 #define MIN_SPEED (500)
 static void set_pwm(uint8_t chlx, int32_t duty);
 static void motor_break(uint8_t chlx);
@@ -103,7 +103,7 @@ static struct ll_motor_s g_motor[4] =
 
 static bool motor_locked(void)
 {
-    return !stm32_gpioread(MOTOR_SW_PORT);
+    return stm32_gpioread(MOTOR_SW_PORT);
 }
 #define MOTOR_WORK_REPEAT() work_queue(HPWORK, &g_motor_work, motor_worker, (void *)g_motor, MOTOR_WORK_TICKS)
 static void motor_worker(FAR void *arg)
@@ -251,12 +251,21 @@ static int motor_close(FAR struct file * filep)
 static ssize_t motor_read(FAR struct file * filep, FAR char * buffer, size_t buflen)
 {
     struct ll_motor_s *motor = (struct ll_motor_s *)(filep->f_inode->i_private);
+    uint8_t _motor_locked = motor_locked();
+
     if (buflen < sizeof(motor->spd))
     {
         return -1;
     }
     memcpy(buffer, &motor->spd,sizeof(motor->spd));
-    return sizeof(motor->spd);
+
+    if (buflen < sizeof(motor->spd) + sizeof(_motor_locked))
+    {
+        return sizeof(motor->spd);
+    }
+
+    memcpy(buffer + sizeof(motor->spd), &_motor_locked, sizeof(_motor_locked));
+    return sizeof(motor->spd) + sizeof(_motor_locked);
 }
 
 static ssize_t motor_write(FAR struct file * filep, FAR char * buffer, size_t buflen)
@@ -268,11 +277,11 @@ static ssize_t motor_write(FAR struct file * filep, FAR char * buffer, size_t bu
 
     if (motor->status == MOTOR_PWM)
     {
-        motor->sp_pwm = (int32_t)((float)sp/100 * 65535);
+        motor->sp_pwm = (int32_t)((float)sp/10000 * 65535);
     }
     else if (motor->status == MOTOR_PID)
     {
-        int _sp_spd = (int32_t)((float)sp/100 * MAX_SPEED);
+        int _sp_spd = (int32_t)((float)sp/10000 * MAX_SPEED);
         if (_sp_spd < MIN_SPEED)
         {
             _sp_spd = 0;
