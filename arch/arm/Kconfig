@@ -461,6 +461,12 @@ config ARCH_CHIP_CXD56XX
 	---help---
 		Sony CXD56XX (ARM Cortex-M4) architectures
 
+config ARCH_CHIP_GD32F4XX
+	bool "GigaDevice GD32F4xx F405/407/450"
+	select ARCH_CORTEXM4
+	---help---
+		GigaDevcie GD32F4xx architectures (ARM Cortex-M4).
+
 config ARCH_CHIP_ARM_CUSTOM
 	bool "Custom ARM chip"
 	select ARCH_CHIP_CUSTOM
@@ -788,6 +794,7 @@ config ARCH_CHIP
 	default "tms570"	if ARCH_CHIP_TMS570
 	default "xmc4"		if ARCH_CHIP_XMC4
 	default "cxd56xx"	if ARCH_CHIP_CXD56XX
+	default "gd32f4xx"	if ARCH_CHIP_GD32F4XX
 
 config ARCH_HAVE_TRUSTZONE
 	bool
@@ -1056,6 +1063,9 @@ source arch/arm/src/xmc4/Kconfig
 endif
 if ARCH_CHIP_CXD56XX
 source arch/arm/src/cxd56xx/Kconfig
+endif
+if ARCH_CHIP_GD32F4XX
+source arch/arm/src/gd32f4xx/Kconfig
 endif
 
 endif # ARCH_ARM

@@ -1,0 +1,51 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "GD32 Configuration Options"
+
+
+choice
+	prompt "GD32 Chip Selection"
+	default ARCH_CHIP_GD32F450VK
+	depends on ARCH_CHIP_GD32F4XX
+###############################################################################
+# LQFP100
+###############################################################################
+config ARCH_CHIP_GD32F450VE
+	bool "GD32F450VE LQFP100 512K+0K Flash 256K SRAM"
+	select GD32F450
+	---help---
+
+config ARCH_CHIP_GD32F450VG
+	bool "GD32F450VG LQFP100 512K+2560K Flash 256K SRAM"
+	select GD32F450
+	---help---
+
+config ARCH_CHIP_GD32F450VI
+	bool "GD32F450VI LQFP100 256K+2560K Flash 512K SRAM"
+	select GD32F450
+	---help---
+
+config ARCH_CHIP_GD32F450VK
+	bool "GD32F450VK LQFP100 512K+2560K Flash 256K SRAM"
+	select GD32F450
+	---help---
+
+###############################################################################
+# LQFP144
+###############################################################################
+
+###############################################################################
+# BGA176
+###############################################################################
+endchoice
+
+
+config GD32F405 
+	bool
+config GD32F407 
+	bool
+config GD32F450 
+	bool
