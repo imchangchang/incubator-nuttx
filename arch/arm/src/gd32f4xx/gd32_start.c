@@ -50,6 +50,7 @@ void __start(void)
     gpio_output_options_set(GPIOC,GPIO_OTYPE_PP,GPIO_OSPEED_50MHZ, GPIO_PIN_6);
     gpio_bit_write(GPIOC, GPIO_PIN_6, SET);
     arm_serialinit();
+    _info("nx_start\n");
     nx_start();
     for(;;);
 }

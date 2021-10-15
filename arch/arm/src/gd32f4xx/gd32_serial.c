@@ -49,15 +49,61 @@
 #include "arm_internal.h"
 #include "gd32f4xx.h"
 
-/****************************************************************************
- * Name: arm_serialinit
- *
- * Description:
- *   Register serial console and serial ports.  This assumes
- *   that arm_earlyserialinit was called previously.
- *
- ****************************************************************************/
-void arm_serialinit(void)
+
+#define CONFIG_UART0_RXBUFSIZE 512
+#define CONFIG_UART0_TXBUFSIZE 512
+
+static char g_uart0rxbuffer[CONFIG_UART0_RXBUFSIZE];
+static char g_uart0txbuffer[CONFIG_UART0_TXBUFSIZE];
+
+static int  up_setup(struct uart_dev_s *dev);
+static void up_shutdown(struct uart_dev_s *dev);
+static int  up_attach(struct uart_dev_s *dev);
+static void up_detach(struct uart_dev_s *dev);
+static int  up_interrupt(int irq, void *context, void *arg);
+static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
+static int  up_receive(struct uart_dev_s *dev, unsigned int *status);
+static void up_rxint(struct uart_dev_s *dev, bool enable);
+static bool up_rxavailable(struct uart_dev_s *dev);
+static void up_send(struct uart_dev_s *dev, int ch);
+static void up_txint(struct uart_dev_s *dev, bool enable);
+static bool up_txready(struct uart_dev_s *dev);
+
+static struct uart_dev_s dev =
+{
+	.isconsole = true;
+	.recv =
+	{
+		.size = CONFIG_UART0_RXBUFSIZE,
+		.buffer = g_uart0rxbuffer,
+	},
+	.xmit =
+	{
+		.size = CONFIG_USART1_TXBUFSIZE,
+		.buffer = g_usart1txbuffer,
+	},
+    .ops =
+    {
+    		.setup 	= up_setup,
+    		.shutdown = up_shutdown,
+			.attach = up_attach,
+			.detach = up_detach,
+			.ioctl = up_ioctl,
+			.receive = up_receive,
+			.rxint = up_rxint,
+			.rxavaliable = up_rxavailable,
+#ifdef CONFIG_SERIAL_IFLOWCONTROL
+#error "currently not support iflowcontrol"
+	        .rxflowcontrol = up_rxflowcontrol,
+#endif
+			.send = up_send,
+			.txint = up_txint,
+			.txready = up_txready,
+			.tx_empty = up_txready,
+    },
+};
+
+static int  up_setup(struct uart_dev_s *dev)
 {
     rcu_periph_clock_enable(RCU_GPIOB);
     rcu_periph_clock_enable(RCU_USART0);
@@ -78,8 +124,61 @@ void arm_serialinit(void)
     usart_transmit_config(USART0, USART_TRANSMIT_ENABLE);
     usart_enable(USART0);
 
-    usart_data_transmit(USART0, 'a');
-    while (usart_flag_get(USART0, USART_FLAG_TBE) == RESET) {}
+	return OK;
+}
+static void up_shutdown(struct uart_dev_s *dev)
+{
+}
+static int  up_attach(struct uart_dev_s *dev)
+{
+
+}
+static void up_detach(struct uart_dev_s *dev)
+{
+
+}
+static int  up_interrupt(int irq, void *context, void *arg)
+{
+
+}
+static int  up_ioctl(struct file *filep, int cmd, unsigned long arg)
+{
+	return OK;
+}
+static int  up_receive(struct uart_dev_s *dev, unsigned int *status){
+
+}
+static void up_rxint(struct uart_dev_s *dev, bool enable){
+
+}
+static bool up_rxavailable(struct uart_dev_s *dev)
+{
+
+}
+static void up_send(struct uart_dev_s *dev, int ch)
+{
+
+}
+static void up_txint(struct uart_dev_s *dev, bool enable)
+{
+
+}
+static bool up_txready(struct uart_dev_s *dev)
+{
+	return true;
+}
+
+/****************************************************************************
+ * Name: arm_serialinit
+ *
+ * Description:
+ *   Register serial console and serial ports.  This assumes
+ *   that arm_earlyserialinit was called previously.
+ *
+ ****************************************************************************/
+void arm_serialinit(void)
+{
+
 }
 
 /****************************************************************************
