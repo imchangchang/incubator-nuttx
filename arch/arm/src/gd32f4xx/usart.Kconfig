@@ -1,32 +1,152 @@
 
+##### USART Selection
+
+comment "U[S]ART Selection"
+
+config GD32_USART
+	bool
+	default n
+
 config GD32_USART0
 	bool "USART0"
 	default n
+	select GD32_USART
 
 config GD32_USART1
 	bool "USART1"
 	default n
+	select GD32_USART
 
 config GD32_USART2
 	bool "USART2"
 	default n
+	select GD32_USART
 
 config GD32_UART3
 	bool "UART3"
 	default n
+	select GD32_USART
 
 config GD32_UART4
 	bool "UART4"
 	default n
+	select GD32_USART
 
 config GD32_USART5
 	bool "USART5"
 	default n
+	select GD32_USART
 
 config GD32_UART6
 	bool "UART6"
 	default n
+	select GD32_USART
 
 config GD32_UART7
 	bool "UART7"
 	default n
+	select GD32_USART
+
+##### USART Configuration
+menu "U[S]ART Device Configuration"
+	depends on GD32_USART
+
+comment "U[S]ART Devie Configuration"
+
+# USART0
+choice
+	prompt "USART0 Driver Configuration"
+	default GD32_USART0_SERIALDRIVER
+	depends on GD32_USART0
+
+config GD32_USART0_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART0_SERIALDRIVER
+
+endchoice # USART0
+
+# USART1
+choice
+	prompt "USART1 Driver Configuration"
+	default GD32_USART1_SERIALDRIVER
+	depends on GD32_USART1
+
+config GD32_USART1_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART1_SERIALDRIVER
+
+endchoice # USART1
+
+# USART2
+choice
+	prompt "USART2 Driver Configuration"
+	default GD32_USART2_SERIALDRIVER
+	depends on GD32_USART2
+
+config GD32_USART2_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART2_SERIALDRIVER
+
+endchoice # USART2
+
+# UART3
+choice
+	prompt "UART3 Driver Configuration"
+	default GD32_UART3_SERIALDRIVER
+	depends on GD32_UART3
+
+config GD32_UART3_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART3_SERIALDRIVER
+
+endchoice # UART3
+
+# UART4
+choice
+	prompt "UART4 Driver Configuration"
+	default GD32_UART4_SERIALDRIVER
+	depends on GD32_UART4
+
+config GD32_UART4_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART4_SERIALDRIVER
+
+endchoice # UART4
+
+# USART5
+choice
+	prompt "USART5 Driver Configuration"
+	default GD32_USART5_SERIALDRIVER
+	depends on GD32_USART5
+
+config GD32_USART5_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART5_SERIALDRIVER
+
+endchoice # USART5
+
+# UART6
+choice
+	prompt "UART6 Driver Configuration"
+	default GD32_UART6_SERIALDRIVER
+	depends on GD32_UART6
+
+config GD32_UART6_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART6_SERIALDRIVER
+
+endchoice # UART6
+
+# UART7
+choice
+	prompt "UART7 Driver Configuration"
+	default GD32_UART7_SERIALDRIVER
+	depends on GD32_UART7
+
+config GD32_UART7_SERIALDRIVER
+	bool "Standard serial driver"
+	select USART7_SERIALDRIVER
+
+endchoice # UART7
+
+endmenu # UART Configuration
