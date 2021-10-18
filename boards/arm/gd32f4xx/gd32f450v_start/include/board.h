@@ -35,6 +35,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define __SYSTEM_CLOCK_200M_PLL_25M_HXTAL         (uint32_t)(200000000)
+
  #define GPIO_UART0_RX_PORT GPIOB
  #define GPIO_UART0_RX_PIN  GPIO_PIN_6
  #define GPIO_UART0_RX_AF   GPIO_AF_7
