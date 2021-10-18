@@ -464,6 +464,7 @@ config ARCH_CHIP_CXD56XX
 config ARCH_CHIP_GD32F4XX
 	bool "GigaDevice GD32F4xx F405/407/450"
 	select ARCH_CORTEXM4
+	select ARCH_HAVE_FPU
 	---help---
 		GigaDevcie GD32F4xx architectures (ARM Cortex-M4).
 

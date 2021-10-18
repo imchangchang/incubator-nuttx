@@ -1,8 +1,6 @@
-/*
- * gd32_boot.c
- *
- *  Created on: Oct 14, 2021
- *      Author: cgeng
- */
+#include <nuttx/board.h>
 
+void gd32_boradinitiazlie(void)
+{
 
+}
