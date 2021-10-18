@@ -429,7 +429,7 @@ void arm_lowputc(char ch)
 		return;
 	}
     usart_data_transmit(g_low_uart->uart_periph, ch);
-    while (usart_flag_get(g_low_uart, USART_FLAG_TBE) == RESET) {}
+    while (usart_flag_get(g_low_uart->uart_periph, USART_FLAG_TBE) == RESET) {}
 }
 
 /****************************************************************************
