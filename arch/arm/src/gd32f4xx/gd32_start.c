@@ -29,7 +29,6 @@ void __start(void)
 	uint32_t *dest;
 
   /* Set the stack limit before we attempt to call any functions */
-
   __asm__ volatile("sub r10, sp, %0" : :
                    "r"(CONFIG_IDLETHREAD_STACKSIZE - 64) :);
 
@@ -45,12 +44,14 @@ void __start(void)
 	  *dest++ = *src++;
 	}
 
+	gd32_lowsetup();
+
     rcu_periph_clock_enable(RCU_GPIOC);
     gpio_mode_set(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO_PIN_6);
     gpio_output_options_set(GPIOC,GPIO_OTYPE_PP,GPIO_OSPEED_50MHZ, GPIO_PIN_6);
     gpio_bit_write(GPIOC, GPIO_PIN_6, SET);
-    arm_serialinit();
-    _info("nx_start\n");
+
+//    arm_serialinit();
     nx_start();
     for(;;);
 }

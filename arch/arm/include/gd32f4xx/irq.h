@@ -64,6 +64,8 @@
  */
 #define GD32_IRQ_FIRST         (16) /* Vector number of the first external interrupt */
 
+#define GD32_IRQ_NUM(x)        (x + GD32_IRQ_FIRST)
+
 #define GD32_IRQ_NEXTINT      (90)
 #define NR_IRQS               (GD32_IRQ_FIRST + GD32_IRQ_NEXTINT)
 

@@ -31,11 +31,16 @@
 # include <stdint.h>
 #endif
 
-/* Do not include STM32 F7 header files here */
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+ #define GPIO_UART0_RX_PORT GPIOB
+ #define GPIO_UART0_RX_PIN  GPIO_PIN_6
+ #define GPIO_UART0_RX_AF   GPIO_AF_7
+ #define GPIO_UART0_TX_PORT GPIOB
+ #define GPIO_UART0_TX_PIN  GPIO_PIN_7
+ #define GPIO_UART0_TX_AF   GPIO_AF_7
 
 
 #endif /* __BOARDS_ARM_GD32F4XX_GD32F450V_START_INCLUDE_BOARD_H */

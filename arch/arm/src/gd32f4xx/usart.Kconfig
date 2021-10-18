@@ -61,7 +61,7 @@ choice
 
 config GD32_USART0_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART0_SERIALDRIVER
+	select UART0_SERIALDRIVER
 
 endchoice # USART0
 
@@ -73,7 +73,7 @@ choice
 
 config GD32_USART1_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART1_SERIALDRIVER
+	select UART1_SERIALDRIVER
 
 endchoice # USART1
 
@@ -85,7 +85,7 @@ choice
 
 config GD32_USART2_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART2_SERIALDRIVER
+	select UART2_SERIALDRIVER
 
 endchoice # USART2
 
@@ -97,7 +97,7 @@ choice
 
 config GD32_UART3_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART3_SERIALDRIVER
+	select UART3_SERIALDRIVER
 
 endchoice # UART3
 
@@ -109,7 +109,7 @@ choice
 
 config GD32_UART4_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART4_SERIALDRIVER
+	select UART4_SERIALDRIVER
 
 endchoice # UART4
 
@@ -121,7 +121,7 @@ choice
 
 config GD32_USART5_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART5_SERIALDRIVER
+	select UART5_SERIALDRIVER
 
 endchoice # USART5
 
@@ -133,7 +133,7 @@ choice
 
 config GD32_UART6_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART6_SERIALDRIVER
+	select UART6_SERIALDRIVER
 
 endchoice # UART6
 
@@ -145,7 +145,7 @@ choice
 
 config GD32_UART7_SERIALDRIVER
 	bool "Standard serial driver"
-	select USART7_SERIALDRIVER
+	select UART7_SERIALDRIVER
 
 endchoice # UART7
 
