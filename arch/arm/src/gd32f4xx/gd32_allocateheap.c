@@ -127,7 +127,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
   *heap_size  = HEAP_END - g_idle_topstack;
 
   /* Colorize the heap for debug */
-  _info("%x %x %d\n", *heap_start,HEAP_END,*heap_size);
+  _info("%x %x %d\n", (uintptr_t)(*heap_start),HEAP_END,*heap_size);
 
   up_heap_color(*heap_start, *heap_size);
 }

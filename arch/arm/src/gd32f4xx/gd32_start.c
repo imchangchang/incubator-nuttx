@@ -36,6 +36,7 @@
 
 #include "gd32f4xx.h"
 #include "gd32_start.h"
+#include "gd32_serial.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,15 +71,17 @@ const uintptr_t g_idle_topstack = HEAP_BASE;
 /****************************************************************************
  * Private Function prototypes
  ****************************************************************************/
+
 #ifdef CONFIG_ARCH_FPU
-static inline void stm32_fpuconfig(void);
+static inline void gd32_fpuconfig(void);
 #endif
 
 /****************************************************************************
  * Private Functions
- ****************************************************************************
+ ****************************************************************************/
 
- /****************************************************************************
+
+/****************************************************************************
  * Name: showprogress
  *
  * Description:
@@ -235,7 +238,7 @@ void __start(void)
 
   /* Initialized onboard resources */
 
-  gd32_boradinitiazlie();
+  gd32_boardinitialize();
   showprogress('B');
 
   /* Start NuttX*/

@@ -39,7 +39,6 @@
 
 #include "chip.h"
 #include "gd32f4xx.h"
-#include "system_gd32f4xx.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -57,14 +56,6 @@
  */
 
 #define SYSTICK_RELOAD ((SystemCoreClock / CLK_TCK) - 1)
-
-/* The size of the reload field is 24 bits.  Verify that the reload value
- * will fit in the reload register.
- */
-
-#if SYSTICK_RELOAD > 0x00ffffff
-#  error SYSTICK_RELOAD exceeds the range of the RELOAD register
-#endif
 
 /****************************************************************************
  * Private Functions

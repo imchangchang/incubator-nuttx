@@ -1,6 +1,6 @@
 #include <nuttx/board.h>
 
-void gd32_boradinitiazlie(void)
+void gd32_boardinitialize(void)
 {
 
 }

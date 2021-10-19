@@ -76,12 +76,10 @@
 
  };
 
-
-
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
 static int  up_attach(struct uart_dev_s *dev);
@@ -126,7 +124,7 @@ static struct up_dev_s g_uart0priv =
 {
 	.dev = 
 	{
-#if CONFIG_UART0_SERIAL_CONSOLE
+#ifdef CONFIG_UART0_SERIAL_CONSOLE
 		.isconsole = true,
 #endif
 		.recv = 
@@ -360,11 +358,11 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 	flags = enter_critical_section();
 	if (enable)
 	{
-		usart_interrupt_enable(priv->uart_periph, USART_INT_FLAG_RBNE);
+		usart_interrupt_enable(priv->uart_periph, USART_INT_RBNE);
 	}
 	else
 	{
-		usart_interrupt_disable(priv->uart_periph, USART_INT_FLAG_RBNE);
+		usart_interrupt_disable(priv->uart_periph, USART_INT_RBNE);
 	}
 	leave_critical_section(flags);
 }
@@ -387,11 +385,11 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
 	flags = enter_critical_section();
 	if (enable)
 	{
-		usart_interrupt_enable(priv->uart_periph, USART_INT_FLAG_TC);
+		usart_interrupt_enable(priv->uart_periph, USART_INT_TC);
 	}
 	else
 	{
-		usart_interrupt_disable(priv->uart_periph, USART_INT_FLAG_TC);
+		usart_interrupt_disable(priv->uart_periph, USART_INT_TC);
 	}
 	leave_critical_section(flags);
 }
@@ -442,19 +440,20 @@ void arm_lowputc(char ch)
 
 int up_putc(int ch)
 {
-#if CONSOLE_UART > 0
-  /* Check for LF */
+	if (g_low_uart)
+	{
+		/* Check for LF */
 
-  if (ch == '\n')
-    {
-      /* Add CR */
+		if (ch == '\n')
+		{
+		  /* Add CR */
 
-      arm_lowputc('\r');
-    }
+		  arm_lowputc('\r');
+		}
 
-  arm_lowputc(ch);
-#endif
-  return ch;
+		arm_lowputc(ch);
+	}
+	return ch;
 }
 /****************************************************************************
  * Name: gd32_lowsetup
@@ -467,32 +466,32 @@ int up_putc(int ch)
  ****************************************************************************/
 void gd32_lowsetup(void)
 {
-#if CONFIG_UART0_SERIAL_CONSOLE
+#ifdef CONFIG_UART0_SERIAL_CONSOLE
 	g_low_uart = &g_uart0priv;
 #endif
-#if CONFIG_UART1_SERIAL_CONSOLE
+#ifdef CONFIG_UART1_SERIAL_CONSOLE
 	g_low_uart = &g_uart1priv;
 #endif
-#if CONFIG_UART2_SERIAL_CONSOLE
+#ifdef CONFIG_UART2_SERIAL_CONSOLE
 	g_low_uart = &g_uart2priv;
 #endif
-#if CONFIG_UART3_SERIAL_CONSOLE
+#ifdef CONFIG_UART3_SERIAL_CONSOLE
 	g_low_uart = &g_uart3priv;
 #endif
-#if CONFIG_UART4_SERIAL_CONSOLE
+#ifdef CONFIG_UART4_SERIAL_CONSOLE
 	g_low_uart = &g_uart4priv;
 #endif
-#if CONFIG_UART5_SERIAL_CONSOLE
+#ifdef CONFIG_UART5_SERIAL_CONSOLE
 	g_low_uart = &g_uart5priv;
 #endif
-#if CONFIG_UART6_SERIAL_CONSOLE
+#ifdef CONFIG_UART6_SERIAL_CONSOLE
 	g_low_uart = &g_uart6priv;
 #endif
-#if CONFIG_UART7_SERIAL_CONSOLE
+#ifdef CONFIG_UART7_SERIAL_CONSOLE
 	g_low_uart = &g_uart7priv;
 #endif
 	if (g_low_uart)
 	{
-		up_setup(g_low_uart);
+		up_setup(&(g_low_uart->dev));
 	}
 }
