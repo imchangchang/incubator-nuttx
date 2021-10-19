@@ -35,14 +35,28 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* system_gd32f4xx.h */
 #define __SYSTEM_CLOCK_200M_PLL_25M_HXTAL         (uint32_t)(200000000)
 
- #define GPIO_UART0_RX_PORT GPIOB
- #define GPIO_UART0_RX_PIN  GPIO_PIN_6
- #define GPIO_UART0_RX_AF   GPIO_AF_7
- #define GPIO_UART0_TX_PORT GPIOB
- #define GPIO_UART0_TX_PIN  GPIO_PIN_7
- #define GPIO_UART0_TX_AF   GPIO_AF_7
+#define GPIO_UART0_RX_PORT GPIOB
+#define GPIO_UART0_RX_PIN  GPIO_PIN_6
+#define GPIO_UART0_RX_AF   GPIO_AF_7
+#define GPIO_UART0_TX_PORT GPIOB
+#define GPIO_UART0_TX_PIN  GPIO_PIN_7
+#define GPIO_UART0_TX_AF   GPIO_AF_7
 
+#define GPIO_UART1_RX_PORT GPIOD
+#define GPIO_UART1_RX_PIN  GPIO_PIN_6
+#define GPIO_UART1_RX_AF   GPIO_AF_7
+#define GPIO_UART1_TX_PORT GPIOD
+#define GPIO_UART1_TX_PIN  GPIO_PIN_5
+#define GPIO_UART1_TX_AF   GPIO_AF_7
+
+#define GPIO_UART7_RX_PORT GPIOE
+#define GPIO_UART7_RX_PIN  GPIO_PIN_0
+#define GPIO_UART7_RX_AF   GPIO_AF_8
+#define GPIO_UART7_TX_PORT GPIOE
+#define GPIO_UART7_TX_PIN  GPIO_PIN_1
+#define GPIO_UART7_TX_AF   GPIO_AF_8
 
 #endif /* __BOARDS_ARM_GD32F4XX_GD32F450V_START_INCLUDE_BOARD_H */

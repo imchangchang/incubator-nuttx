@@ -51,7 +51,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
+#define GD32_NUSART (8)
 
  /****************************************************************************
  * Private Types
@@ -155,39 +155,279 @@ static struct up_dev_s g_uart0priv =
 #ifdef CONFIG_UART1_SERIALDRIVER
 static char g_uart1rxbuffer[CONFIG_UART1_RXBUFSIZE];
 static char g_uart1txbuffer[CONFIG_UART1_TXBUFSIZE];
+static struct up_dev_s g_uart1priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART1_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART1_RXBUFSIZE,
+			.buffer = g_uart1rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART1_TXBUFSIZE,
+			.buffer = g_uart1txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart1priv,
+	},
+	.baud = CONFIG_UART1_BAUD,
+	.irq =  GD32_IRQ_NUM(USART1_IRQn),
+	.uart_periph = USART1,
+	.gpio_rx_periph = GPIO_UART1_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART1_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART1_RX_AF,
+	.gpio_tx_periph = GPIO_UART1_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART1_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART1_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART2_SERIALDRIVER
 static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
+static struct up_dev_s g_uart2priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART2_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART2_RXBUFSIZE,
+			.buffer = g_uart2rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART2_TXBUFSIZE,
+			.buffer = g_uart2txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart2priv,
+	},
+	.baud = CONFIG_UART2_BAUD,
+	.irq =  GD32_IRQ_NUM(USART2_IRQn),
+	.uart_periph = USART2,
+	.gpio_rx_periph = GPIO_UART2_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART2_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART2_RX_AF,
+	.gpio_tx_periph = GPIO_UART2_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART2_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART2_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART3_SERIALDRIVER
 static char g_uart3rxbuffer[CONFIG_UART3_RXBUFSIZE];
 static char g_uart3txbuffer[CONFIG_UART3_TXBUFSIZE];
+static struct up_dev_s g_uart3priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART3_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART3_RXBUFSIZE,
+			.buffer = g_uart3rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART3_TXBUFSIZE,
+			.buffer = g_uart3txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart3priv,
+	},
+	.baud = CONFIG_UART3_BAUD,
+	.irq =  GD32_IRQ_NUM(UART3_IRQn),
+	.uart_periph = UART3,
+	.gpio_rx_periph = GPIO_UART3_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART3_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART3_RX_AF,
+	.gpio_tx_periph = GPIO_UART3_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART3_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART3_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART4_SERIALDRIVER
 static char g_uart4rxbuffer[CONFIG_UART4_RXBUFSIZE];
 static char g_uart4txbuffer[CONFIG_UART4_TXBUFSIZE];
+static struct up_dev_s g_uart4priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART4_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART4_RXBUFSIZE,
+			.buffer = g_uart4rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART4_TXBUFSIZE,
+			.buffer = g_uart4txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart4priv,
+	},
+	.baud = CONFIG_UART4_BAUD,
+	.irq =  GD32_IRQ_NUM(UART4_IRQn),
+	.uart_periph = UART4,
+	.gpio_rx_periph = GPIO_UART4_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART4_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART4_RX_AF,
+	.gpio_tx_periph = GPIO_UART4_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART4_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART4_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART5_SERIALDRIVER
 static char g_uart5rxbuffer[CONFIG_UART5_RXBUFSIZE];
 static char g_uart5txbuffer[CONFIG_UART5_TXBUFSIZE];
+static struct up_dev_s g_uart5priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART5_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART5_RXBUFSIZE,
+			.buffer = g_uart5rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART5_TXBUFSIZE,
+			.buffer = g_uart5txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart5priv,
+	},
+	.baud = CONFIG_UART5_BAUD,
+	.irq =  GD32_IRQ_NUM(USART5_IRQn),
+	.uart_periph = USART5,
+	.gpio_rx_periph = GPIO_UART5_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART5_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART5_RX_AF,
+	.gpio_tx_periph = GPIO_UART5_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART5_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART5_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART6_SERIALDRIVER
 static char g_uart6rxbuffer[CONFIG_UART6_RXBUFSIZE];
 static char g_uart6txbuffer[CONFIG_UART6_TXBUFSIZE];
+static struct up_dev_s g_uart6priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART6_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART6_RXBUFSIZE,
+			.buffer = g_uart6rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART6_TXBUFSIZE,
+			.buffer = g_uart6txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart6priv,
+	},
+	.baud = CONFIG_UART6_BAUD,
+	.irq =  GD32_IRQ_NUM(UART6_IRQn),
+	.uart_periph = UART6,
+	.gpio_rx_periph = GPIO_UART6_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART6_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART6_RX_AF,
+	.gpio_tx_periph = GPIO_UART6_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART6_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART6_TX_AF,
+};
 #endif
 
 #ifdef CONFIG_UART7_SERIALDRIVER
 static char g_uart7rxbuffer[CONFIG_UART7_RXBUFSIZE];
 static char g_uart7txbuffer[CONFIG_UART7_TXBUFSIZE];
+static struct up_dev_s g_uart7priv =
+{
+	.dev =
+	{
+#ifdef CONFIG_UART7_SERIAL_CONSOLE
+		.isconsole = true,
+#endif
+		.recv =
+		{
+			.size = CONFIG_UART7_RXBUFSIZE,
+			.buffer = g_uart7rxbuffer,
+		},
+		.xmit =
+		{
+			.size = CONFIG_UART7_TXBUFSIZE,
+			.buffer = g_uart7txbuffer,
+		},
+		.ops = &g_uart_ops,
+		.priv = &g_uart7priv,
+	},
+	.baud = CONFIG_UART7_BAUD,
+	.irq =  GD32_IRQ_NUM(UART7_IRQn),
+	.uart_periph = UART7,
+	.gpio_rx_periph = GPIO_UART7_RX_PORT,
+	.gpio_rx_pin 	= GPIO_UART7_RX_PIN,
+	.gpio_rx_af  	= GPIO_UART7_RX_AF,
+	.gpio_tx_periph = GPIO_UART7_TX_PORT,
+	.gpio_tx_pin 	= GPIO_UART7_TX_PIN,
+	.gpio_tx_af  	= GPIO_UART7_TX_AF,
+};
 #endif
 
+/* The g_low_uart refs to the console uart to let low putc work */
 static struct up_dev_s *g_low_uart = NULL;
+
+/* This table lets us iterate over the configured USARTs */
+static struct up_dev_s * const g_uart_devs[GD32_NUSART] =
+{
+#ifdef CONFIG_UART0_SERIALDRIVER
+  [0] = &g_uart0priv,
+#endif
+#ifdef CONFIG_UART1_SERIALDRIVER
+  [1] = &g_uart1priv,
+#endif
+#ifdef CONFIG_UART2_SERIALDRIVER
+  [2] = &g_uart2priv,
+#endif
+#ifdef CONFIG_UART3_SERIALDRIVER
+  [3] = &g_uart3priv,
+#endif
+#ifdef CONFIG_UART4_SERIALDRIVER
+  [4] = &g_uart4priv,
+#endif
+#ifdef CONFIG_UART5_SERIALDRIVER
+  [5] = &g_usart5priv,
+#endif
+#ifdef CONFIG_UART6_SERIALDRIVER
+  [6] = &g_uart6priv,
+#endif
+#ifdef CONFIG_UART7_SERIALDRIVER
+  [7] = &g_uart7priv,
+#endif
+};
 
 /****************************************************************************
  * Private Functions
@@ -409,8 +649,23 @@ static bool up_txready(struct uart_dev_s *dev)
  ****************************************************************************/
 void arm_serialinit(void)
 {
-	uart_register("/dev/console", &g_uart0priv.dev);
-	uart_register("/dev/ttyS0", &g_uart0priv.dev);
+	char devname[16];
+	unsigned i;
+	unsigned minor = 0;
+	if (g_low_uart)
+	{
+		uart_register("/dev/console", &(g_low_uart->dev));
+	}
+	strcpy(devname, "/dev/ttySx");
+	for (i = 0; i < GD32_NUSART; i++)
+	{
+		if (g_uart_devs[i] == 0)
+		{
+			continue;
+		}
+		devname[9] = '0' + minor++;
+		uart_register(devname, &g_uart_devs[i]->dev);
+	}
 }
 
 /****************************************************************************
