@@ -1,0 +1,45 @@
+
+##### I2C Selection
+
+comment "I2C Selection"
+
+config GD32_I2C
+	bool
+	default n
+
+config GD32_I2C0
+	bool "I2C0"
+	default n
+	select GD32_I2C
+
+config GD32_I2C1
+	bool "I2C1"
+	default n
+	select GD32_I2C
+
+config GD32_I2C2
+	bool "I2C2"
+	default n
+	select GD32_I2C
+
+##### I2C Configuration
+menu "I2C Configuration"
+	depends on GD32_I2C
+
+comment "I2C Configuration"
+
+# I2C0 
+
+config GD32_I2C0_FREQUENCY
+	int "I2C0 Frequency (HZ)"
+	default 100000
+
+config GD32_I2C1_FREQUENCY
+	int "I2C0 Frequency (HZ)"
+	default 100000
+
+config GD32_I2C2_FREQUENCY
+	int "I2C0 Frequency (HZ)"
+	default 100000
+
+endmenu # I2C Configuration
