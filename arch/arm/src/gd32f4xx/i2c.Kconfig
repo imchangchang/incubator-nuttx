@@ -32,14 +32,17 @@ comment "I2C Configuration"
 
 config GD32_I2C0_FREQUENCY
 	int "I2C0 Frequency (HZ)"
+	depends on GD32_I2C0
 	default 100000
 
 config GD32_I2C1_FREQUENCY
-	int "I2C0 Frequency (HZ)"
+	int "I2C1 Frequency (HZ)"
+	depends on GD32_I2C1
 	default 100000
 
 config GD32_I2C2_FREQUENCY
-	int "I2C0 Frequency (HZ)"
+	int "I2C2 Frequency (HZ)"
+	depends on GD32_I2C2
 	default 100000
 
 endmenu # I2C Configuration
