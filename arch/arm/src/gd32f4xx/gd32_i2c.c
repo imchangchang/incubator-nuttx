@@ -18,35 +18,6 @@
  *
  ****************************************************************************/
 
-/* Supports:
- *  - Master operation, 100 kHz (standard) and 400 kHz (full speed)
- *  - Multiple instances (shared bus)
- *  - Interrupt based operation
- *
- * Structure naming:
- *  - Device: structure as defined by the nuttx/i2c/i2c.h
- *  - Instance: represents each individual access to the I2C driver, obtained
- *     by the i2c_init(); it extends the Device structure from the
- *     nuttx/i2c/i2c.h;
- *     Instance points to OPS, to common I2C Hardware private data and
- *     contains its own private data, as frequency, address, mode of
- *     operation (in the future)
- *  - Private: Private data of an I2C Hardware
- *
- * TODO
- *  - Check for all possible deadlocks (as BUSY='1' I2C needs to be reset in
- *    HW using the I2C_CR1_SWRST)
- *  - SMBus support (hardware layer timings are already supported) and add
- *    SMBA gpio pin
- *  - Slave support with multiple addresses (on multiple instances):
- *      - 2 x 7-bit address or
- *      - 1 x 10 bit addresses + 1 x 7 bit address (?)
- *      - plus the broadcast address (general call)
- *  - Multi-master support
- *  - DMA (to get rid of too many CPU wake-ups and interventions)
- *  - Be ready for IPMI
- */
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -82,10 +53,32 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+enum gd32_i2c_error{
+	I2C_SUCCESS,
+	I2C_ERR_7BADDR_WITH_10BHEADER,
+	I2C_ERR_MASTER_STPDET,
+	I2C_ERR_ISR,
+};
+enum gd32_i2c_status{
+	STATUS_IDLE,
+	STATUS_7BADDRESS_SENT,
+	STATUS_10BADDRESS1_SENT,
+	STATUS_10BADDRESS2_SENT,
+};
 
+/* I2C Transfer Data*/
+struct gd32_i2c_transfer_s {
+	uint8_t *ptr; 			/* Current message buffer */
+	uint32_t frequency; 	/* Current I2C frequency */
+	uint16_t addr;          /* Slave addr*/
+	int dcnt; 				/* Current message length */
+	uint16_t flags; 		/* Current message flags */
+	uint32_t status;
+	uint32_t error;
+	bool resent_start; /* 10bit read mode*/
+};
 
 /* I2C Device Private Data */
-
 struct gd32_i2c_priv_s {
 	/* Standard I2C operations */
 	const struct i2c_ops_s *ops;
@@ -102,15 +95,11 @@ struct gd32_i2c_priv_s {
 	uint32_t ev_irq; /* event interrupt */
 	uint32_t er_irq; /* error interrupt */
 
-	int refs; 					/* Reference count */
-	sem_t sem_excl; 			/* Mutual exclusion semaphore */
-	sem_t sem_isr; 				/* Interrupt wait semaphore */
+	int refs; 		/* Reference count */
+	sem_t sem_excl; /* Mutual exclusion semaphore */
+	sem_t sem_isr; 	/* Interrupt wait semaphore */
 
-	uint8_t *ptr; 			/* Current message buffer */
-	uint32_t frequency; 	/* Current I2C frequency */
-	uint16_t addr;
-	int dcnt; 				/* Current message length */
-	uint16_t flags; 		/* Current message flags */
+	struct gd32_i2c_transfer_s transfer;
 };
 
 /****************************************************************************
@@ -162,8 +151,11 @@ static struct gd32_i2c_priv_s gd32_i2c0 =
 	.ev_irq = GD32_IRQ_NUM(I2C0_EV_IRQn),
 	.er_irq = GD32_IRQ_NUM(I2C0_ER_IRQn),
 	.refs = 0,
-	.ptr = NULL,
-	.frequency = CONFIG_GD32_I2C0_FREQUENCY,
+	.transfer =
+	{
+		.ptr = NULL,
+		.frequency = CONFIG_GD32_I2C0_FREQUENCY,
+	},
 };
 #endif
 #ifdef CONFIG_GD32_I2C1
@@ -222,12 +214,27 @@ static void gd32_i2c_setclock(FAR struct gd32_i2c_priv_s *priv,
 
 	/* Has the I2C bus frequency changed? */
 
-	if (frequency != priv->frequency) {
-		priv->frequency = frequency;
-		i2c_clock_config(priv->i2c_periph, priv->frequency, I2C_DTCY_2);
+	if (frequency != priv->transfer.frequency) {
+		priv->transfer.frequency = frequency;
+		i2c_clock_config(priv->i2c_periph, priv->transfer.frequency, I2C_DTCY_2);
 	}
 }
 
+static __inline gd32_i2c_end_isr_procss(struct gd32_i2c_priv_s *priv,
+		uint32_t error) {
+	priv->transfer.error = error;
+	i2c_interrupt_disable(priv->i2c_periph, I2C_INT_ERR);
+	i2c_interrupt_disable(priv->i2c_periph, I2C_INT_EV);
+	i2c_interrupt_disable(priv->i2c_periph, I2C_INT_BUF);
+
+	/* Only post the sem, when it's locked */
+	int savl;
+	sem_getvalue(&priv->sem_isr, &savl);
+	if (savl <= 0)
+	{
+		nxsem_post(&priv->sem_isr);
+	}
+}
 
 /****************************************************************************
  * Name: gd32_i2c_isr_process
@@ -242,52 +249,105 @@ static int gd32_i2c_isr_process(struct gd32_i2c_priv_s *priv) {
 	/* START bit sent */
 	if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_SBSEND) == SET)
 	{
-		/* 10-bit address */
-		if (priv->flags & I2C_M_TEN)
+		uint32_t trandirection =
+				 (priv->transfer.flags & I2C_M_READ) ? I2C_RECEIVER:I2C_TRANSMITTER;
+		if (priv->transfer.resent_start == false)
 		{
-			//
+			/* 10-bit address */
+			if (priv->transfer.flags & I2C_M_TEN)
+			{
+				i2c_master_addressing(priv->i2c_periph,
+									  I2C_ADDR10H(priv->transfer.addr),
+									  trandirection);
+			}
+			else
+			{
+				i2c_master_addressing(priv->i2c_periph,
+									  I2C_ADDR8(priv->transfer.addr),
+									  trandirection);
+			}
 		}
 		else
 		{
 			i2c_master_addressing(priv->i2c_periph,
-								  priv->addr<<1,
-								  (priv->flags & I2C_M_READ) ? I2C_RECEIVER:I2C_TRANSMITTER);
+							      I2C_ADDR10H(priv->transfer.addr),
+								  I2C_RECEIVER);
 		}
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_ADDSEND) == SET)
 	{
+		// 10bits and
+		if ((priv->transfer.flags & I2C_M_TEN & I2C_M_READ) && priv->transfer.resent_start == false)
+		{
+			priv->transfer.resent_start = true;
+			i2c_start_on_bus(priv->i2c_periph);
+		}
+		else if (priv->transfer.flags & I2C_M_READ && priv->transfer.dcnt == 1)
+		{
+			i2c_ack_config(priv->i2c_periph, I2C_ACK_DISABLE);
+		}
 		i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_ADDSEND);
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_TBE) == SET)
 	{
-		if (priv->dcnt > 0)
+		if (priv->transfer.dcnt > 0)
 		{
-			priv->dcnt--;
-			i2c_data_transmit(priv->i2c_periph, *priv->ptr++);
+			priv->transfer.dcnt--;
+			i2c_data_transmit(priv->i2c_periph, *priv->transfer.ptr++);
 		}
 		else
 		{
-			i2c_stop_on_bus(priv->i2c_periph);
-			i2c_interrupt_disable(priv->i2c_periph, I2C_INT_ERR);
-			i2c_interrupt_disable(priv->i2c_periph, I2C_INT_EV);
-			i2c_interrupt_disable(priv->i2c_periph, I2C_INT_BUF);
-			nxsem_post(&priv->sem_isr);
+			if (!(priv->transfer.flags & I2C_M_NOSTOP))
+				i2c_stop_on_bus(priv->i2c_periph);
+			gd32_i2c_end_isr_procss(priv, I2C_SUCCESS);
 		}
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_ADD10SEND))
 	{
+		if (priv->transfer.flags & I2C_M_TEN)
+		{
+			I2C_DATA(priv->i2c_periph) = I2C_ADDR10L(priv->transfer.addr);
+		}
+		else
+		{
+			i2c_stop_on_bus(priv->i2c_periph);
+			gd32_i2c_end_isr_procss(priv, I2C_ERR_7BADDR_WITH_10BHEADER);
+		}
 		i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_ADD10SEND);
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_STPDET))
 	{
+		i2c_stop_on_bus(priv->i2c_periph);
+		gd32_i2c_end_isr_procss(priv, I2C_ERR_MASTER_STPDET);
 		i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_STPDET);
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_RBNE))
 	{
+		if (priv->transfer.dcnt > 0)
+		{
+			priv->transfer.dcnt--;
+			*priv->transfer.ptr++ = i2c_data_receive(priv->i2c_periph);
+			if (priv->transfer.dcnt == 1)
+			{
+				i2c_ack_config(priv->i2c_periph, I2C_ACK_DISABLE);
+			}
+			else
+			{
+				if (!(priv->transfer.flags & I2C_M_NOSTOP))
+					i2c_stop_on_bus(priv->i2c_periph);
+				gd32_i2c_end_isr_procss(priv, I2C_SUCCESS);
+			}
+		}
 		i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_RBNE);
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_BTC))
 	{
+		if (priv->transfer.dcnt == 0)
+		{
+			if (!(priv->transfer.flags & I2C_M_NOSTOP))
+				i2c_stop_on_bus(priv->i2c_periph);
+			gd32_i2c_end_isr_procss(priv, I2C_SUCCESS);
+		}
 		i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_BTC);
 	}
 
@@ -313,6 +373,7 @@ static int gd32_i2c_eisr(int irq, void * context, FAR void * arg)
 {
 	struct gd32_i2c_priv_s *priv = (struct gd32_i2c_priv_s*) arg;
 	DEBUGASSERT(priv != NULL);
+
     /* no acknowledge received */
     if(i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_AERR)){
         i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_AERR);
@@ -347,11 +408,8 @@ static int gd32_i2c_eisr(int irq, void * context, FAR void * arg)
     if(i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_PECERR)){
         i2c_interrupt_flag_clear(priv->i2c_periph, I2C_INT_FLAG_PECERR);
     }
-
-    /* disable the error interrupt */
-    i2c_interrupt_disable(priv->i2c_periph, I2C_INT_ERR);
-    i2c_interrupt_disable(priv->i2c_periph, I2C_INT_BUF);
-    i2c_interrupt_disable(priv->i2c_periph, I2C_INT_EV);
+	i2c_stop_on_bus(priv->i2c_periph);
+	gd32_i2c_end_isr_procss(priv, I2C_ERR_ISR);
 }
 
 static uint32_t _get_gpio_rcu_periph(uint32_t gpio_periph) {
@@ -427,7 +485,7 @@ static int gd32_i2c_init(FAR struct gd32_i2c_priv_s *priv) {
 	up_enable_irq(priv->ev_irq);
 	up_enable_irq(priv->er_irq);
 
-	i2c_clock_config(priv->i2c_periph, priv->frequency, I2C_DTCY_2);
+	i2c_clock_config(priv->i2c_periph, priv->transfer.frequency, I2C_DTCY_2);
 	/* The address is not used in master mode */
 	i2c_mode_addr_config(priv->i2c_periph,
 			             I2C_I2CMODE_ENABLE,
@@ -458,7 +516,14 @@ static int gd32_i2c_deinit(FAR struct gd32_i2c_priv_s *priv) {
 	rcu_periph_clock_disable(_get_gpio_rcu_periph(priv->gpio_scl_periph));
 	rcu_periph_clock_disable(_get_gpio_rcu_periph(priv->gpio_sda_periph));
 
-	//TODO: GPIO deinit
+	/* GPIO configuration */
+	gpio_af_set(priv->gpio_scl_periph,GPIO_AF_0, priv->gpio_scl_pin);
+	gpio_mode_set(priv->gpio_scl_periph, GPIO_MODE_INPUT, GPIO_PUPD_NONE,
+			priv->gpio_scl_pin);
+
+	gpio_af_set(priv->gpio_sda_periph, GPIO_AF_0, priv->gpio_sda_pin);
+	gpio_mode_set(priv->gpio_sda_periph, GPIO_MODE_INPUT, GPIO_PUPD_NONE,
+			priv->gpio_sda_pin);
 
 	return OK;
 }
@@ -473,30 +538,37 @@ static int gd32_i2c_transfer_one_msg(FAR struct i2c_master_s *dev,
 	int ret;
 
 
-	priv->ptr = msg->buffer;
-	priv->dcnt = msg->length;
-	priv->flags = msg->flags;
-	priv->addr = msg->addr;
+	priv->transfer.status   	= STATUS_IDLE;
+	priv->transfer.ptr 			= msg->buffer;
+	priv->transfer.dcnt 		= msg->length;
+	priv->transfer.flags 		= msg->flags;
+	priv->transfer.addr 		= msg->addr;
+	priv->transfer.error 		= I2C_SUCCESS;
+	priv->transfer.resent_start = false;
+
+	i2c_ack_config(priv->i2c_periph, I2C_ACK_ENABLE);
 
 	i2c_interrupt_enable(priv->i2c_periph, I2C_INT_ERR);
 	i2c_interrupt_enable(priv->i2c_periph, I2C_INT_EV);
 	i2c_interrupt_enable(priv->i2c_periph, I2C_INT_BUF);
 
-	i2c_start_on_bus(priv->i2c_periph);
+	if (!(priv->transfer.flags & I2C_M_NOSTART))
+		i2c_start_on_bus(priv->i2c_periph);
+
+
 	ret = nxsem_wait(&priv->sem_isr);
 
-
-	nxsem_post(&priv->sem_isr);
-
-	priv->ptr = NULL;
-	priv->dcnt = 0;
-	priv->flags = 0;
-	priv->addr = 0;
-
-	if (ret < 0)
+	/* Process error */
+	if (priv->transfer.error == I2C_ERR_ISR)
 	{
-		return ret;
+		ret = -ENODEV;
 	}
+
+	priv->transfer.ptr = NULL;
+	priv->transfer.dcnt = 0;
+	priv->transfer.flags = 0;
+	priv->transfer.addr = 0;
+
 	return ret;
 }
 
@@ -516,8 +588,6 @@ static int gd32_i2c_transfer(FAR struct i2c_master_s *dev,
 
 	DEBUGASSERT(count > 0);
 
-	/* Ensure that address or flags don't change meanwhile */
-
 	ret = nxsem_wait(&priv->sem_excl);
 
 	if (ret < 0) {
@@ -530,10 +600,10 @@ static int gd32_i2c_transfer(FAR struct i2c_master_s *dev,
 	}
 	else
 	{
-		gd32_i2c_setclock(priv, msgs->frequency);
 
 		for (int i = 0; i < count ; i++)
 		{
+			gd32_i2c_setclock(priv, msgs[i].frequency);
 			ret = gd32_i2c_transfer_one_msg(dev, &msgs[i]);
 			if (ret < 0)
 			{

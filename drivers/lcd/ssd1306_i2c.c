@@ -34,7 +34,7 @@
 #include <nuttx/lcd/ssd1306.h>
 
 #include "ssd1306.h"
-
+#define CONFIG_LCD_SSD1306_REGDEBUG
 #if defined(CONFIG_LCD_SSD1306) && defined(CONFIG_LCD_SSD1306_I2C)
 
 /****************************************************************************
@@ -114,6 +114,7 @@ int ssd1306_sendblk(FAR struct ssd1306_dev_s *priv, uint8_t *data,
    */
 
   /* Send the SSD1306 register address (with no STOP) */
+  lcdinfo("data len:%d\n", len);
 
   transfer_mode    = 0x40;                    /* Select data transfer */
 
