@@ -5,21 +5,16 @@
  *      Author: cgeng
  */
 #include <nuttx/board.h>
-#include <nuttx/lcd/lcd.h>
-#include <nuttx/lcd/ssd1306.h>
 #include <stdio.h>
-
 #include "gd32_i2c.h"
-
-static FAR struct lcd_dev_s *g_lcddev;
 
 int board_app_initialize(uintptr_t arg) {
 	return 0;
 }
 
-struct i2c_msg_s msg[2];
 
 void board_late_initialize(void) {
+	#if 0
 	const int devno = 0;
 	FAR struct i2c_master_s *i2c_master = gd32_i2cbus_initialize(0);
 	i2c_register(i2c_master, 0);
@@ -50,17 +45,5 @@ void board_late_initialize(void) {
 		g_lcddev->setpower(g_lcddev, CONFIG_LCD_MAXPOWER);
 		return OK;
 	}
-}
-int board_lcd_initialize(void)
-{
-  return OK;
-}
-
-FAR struct lcd_dev_s *board_lcd_getdev(int devno)
-{
-	return g_lcddev;
-}
-void board_lcd_uninitialize(void)
-{
-  /* TO-FIX */
+	#endif
 }

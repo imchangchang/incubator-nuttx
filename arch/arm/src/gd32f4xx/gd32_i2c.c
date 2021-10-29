@@ -19,6 +19,29 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Macros in board.h, where x in (0,1,2):
+ *   GPIO_I2Cx_SCL_PORT
+ *   GPIO_I2Cx_SCL_PIN
+ *   GPIO_I2Cx_SCL_AF
+ *   GPIO_I2Cx_SDA_PORT
+ *   GPIO_I2Cx_SDA_PIN
+ *   GPIO_I2Cx_SDA_AF
+ *
+ * Example:
+ *     #define GPIO_I2C0_SCL_PORT GPIOB
+ *     #define GPIO_I2C0_SCL_PIN  GPIO_PIN_8
+ *     #define GPIO_I2C0_SCL_AF   GPIO_AF_4
+ *     #define GPIO_I2C0_SDA_PORT GPIOB
+ *     #define GPIO_I2C0_SDA_PIN  GPIO_PIN_9
+ *     #define GPIO_I2C0_SDA_AF   GPIO_AF_4
+ *
+ * Todo
+ *     1. Complete slave send and recv mode, add DMA support.
+ *     2. Run stress testing
+ ****************************************************************************/
+
+
+/****************************************************************************
  * Included Files
  ****************************************************************************/
 
@@ -46,6 +69,8 @@
 #include "gd32f4xx.h"
 #include "gd32_i2c.h"
 
+#ifdef CONFIG_GD32_I2C 
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -68,14 +93,14 @@ enum gd32_i2c_status{
 
 /* I2C Transfer Data*/
 struct gd32_i2c_transfer_s {
-	uint8_t *ptr; 			/* Current message buffer */
-	uint32_t frequency; 	/* Current I2C frequency */
-	uint16_t addr;          /* Slave addr*/
-	int dcnt; 				/* Current message length */
-	uint16_t flags; 		/* Current message flags */
+	uint8_t *ptr; 			        /* Current message buffer */
+	uint32_t frequency; 	      /* Current I2C frequency */
+	uint16_t addr;              /* Slave addr*/
+	int dcnt; 				          /* Current message length */
+	uint16_t flags; 		        /* Current message flags */
 	uint32_t status;
 	uint32_t error;
-	bool resent_start; /* 10bit read mode*/
+	bool resent_start;          /* 10bit read mode*/
 };
 
 /* I2C Device Private Data */
@@ -105,25 +130,14 @@ struct gd32_i2c_priv_s {
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-
-static inline int gd32_i2c_sem_waitdone(FAR struct gd32_i2c_priv_s *priv);
-static inline void gd32_i2c_sem_waitstop(FAR struct gd32_i2c_priv_s *priv);
-static inline void gd32_i2c_sem_post(FAR struct gd32_i2c_priv_s *priv);
 static inline void gd32_i2c_sem_init(FAR struct gd32_i2c_priv_s *priv);
 static inline void gd32_i2c_sem_destroy(FAR struct gd32_i2c_priv_s *priv);
-
-static void gd32_i2c_setclock(FAR struct gd32_i2c_priv_s *priv,
-		uint32_t frequency);
-static inline void gd32_i2c_sendstart(FAR struct gd32_i2c_priv_s *priv);
-static inline void gd32_i2c_clrstart(FAR struct gd32_i2c_priv_s *priv);
-static inline void gd32_i2c_sendstop(FAR struct gd32_i2c_priv_s *priv);
-static inline uint32_t gd32_i2c_getstatus(FAR struct gd32_i2c_priv_s *priv);
+static void gd32_i2c_setclock(FAR struct gd32_i2c_priv_s *priv, uint32_t frequency);
 static int gd32_i2c_isr_process(struct gd32_i2c_priv_s *priv);
 static int gd32_i2c_isr(int irq, void *context, FAR void *arg);
 static int gd32_i2c_init(FAR struct gd32_i2c_priv_s *priv);
 static int gd32_i2c_deinit(FAR struct gd32_i2c_priv_s *priv);
-static int gd32_i2c_transfer(FAR struct i2c_master_s *dev,
-		FAR struct i2c_msg_s *msgs, int count);
+static int gd32_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *msgs, int count);
 
 
 /****************************************************************************
@@ -132,7 +146,6 @@ static int gd32_i2c_transfer(FAR struct i2c_master_s *dev,
 
 
 /* I2C interface */
-
 static const struct i2c_ops_s gd32_i2c_ops = { .transfer = gd32_i2c_transfer };
 
 /* I2C device structures */
@@ -162,12 +175,42 @@ static struct gd32_i2c_priv_s gd32_i2c0 =
 static struct gd32_i2c_priv_s gd32_i2c1 =
 {
 	.ops = &gd32_i2c_ops,
+	.i2c_periph = I2C1,
+	.gpio_scl_periph = GPIO_I2C1_SCL_PORT,
+	.gpio_scl_pin = GPIO_I2C1_SCL_PIN,
+	.gpio_scl_af = GPIO_I2C1_SCL_AF,
+	.gpio_sda_periph = GPIO_I2C1_SDA_PORT,
+	.gpio_sda_pin = GPIO_I2C1_SDA_PIN,
+	.gpio_sda_af = GPIO_I2C1_SDA_AF,
+	.ev_irq = GD32_IRQ_NUM(I2C1_EV_IRQn),
+	.er_irq = GD32_IRQ_NUM(I2C1_ER_IRQn),
+	.refs = 0,
+	.transfer =
+	{
+		.ptr = NULL,
+		.frequency = CONFIG_GD32_I2C1_FREQUENCY,
+	},
 };
 #endif
 #ifdef CONFIG_GD32_I2C2
 static struct gd32_i2c_priv_s gd32_i2c2 =
 {
 	.ops = &gd32_i2c_ops,
+	.i2c_periph = I2C2,
+	.gpio_scl_periph = GPIO_I2C2_SCL_PORT,
+	.gpio_scl_pin = GPIO_I2C2_SCL_PIN,
+	.gpio_scl_af = GPIO_I2C2_SCL_AF,
+	.gpio_sda_periph = GPIO_I2C2_SDA_PORT,
+	.gpio_sda_pin = GPIO_I2C2_SDA_PIN,
+	.gpio_sda_af = GPIO_I2C2_SDA_AF,
+	.ev_irq = GD32_IRQ_NUM(I2C2_EV_IRQn),
+	.er_irq = GD32_IRQ_NUM(I2C2_ER_IRQn),
+	.refs = 0,
+	.transfer =
+	{
+		.ptr = NULL,
+		.frequency = CONFIG_GD32_I2C2_FREQUENCY,
+	},
 };
 #endif
 
@@ -220,7 +263,7 @@ static void gd32_i2c_setclock(FAR struct gd32_i2c_priv_s *priv,
 	}
 }
 
-static __inline gd32_i2c_end_isr_procss(struct gd32_i2c_priv_s *priv,
+static __inline void gd32_i2c_end_isr_procss(struct gd32_i2c_priv_s *priv,
 		uint32_t error) {
 	priv->transfer.error = error;
 	i2c_interrupt_disable(priv->i2c_periph, I2C_INT_ERR);
@@ -271,12 +314,11 @@ static int gd32_i2c_isr_process(struct gd32_i2c_priv_s *priv) {
 		{
 			i2c_master_addressing(priv->i2c_periph,
 							      I2C_ADDR10H(priv->transfer.addr),
-								  I2C_RECEIVER);
+								    I2C_RECEIVER);
 		}
 	}
 	else if (i2c_interrupt_flag_get(priv->i2c_periph, I2C_INT_FLAG_ADDSEND) == SET)
 	{
-		// 10bits and
 		if ((priv->transfer.flags & I2C_M_TEN & I2C_M_READ) && priv->transfer.resent_start == false)
 		{
 			priv->transfer.resent_start = true;
@@ -410,6 +452,7 @@ static int gd32_i2c_eisr(int irq, void * context, FAR void * arg)
     }
 	i2c_stop_on_bus(priv->i2c_periph);
 	gd32_i2c_end_isr_procss(priv, I2C_ERR_ISR);
+  return OK;
 }
 
 static uint32_t _get_gpio_rcu_periph(uint32_t gpio_periph) {
@@ -707,3 +750,4 @@ int gd32_i2cbus_uninitialize(FAR struct i2c_master_s *dev) {
 	gd32_i2c_sem_destroy(priv);
 	return OK;
 }
+#endif // #ifdef CONFIG_GD32_I2C
