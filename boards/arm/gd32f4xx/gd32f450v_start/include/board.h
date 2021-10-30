@@ -35,7 +35,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* system_gd32f4xx.h */
+/* From system_gd32f4xx.h */
 #define __SYSTEM_CLOCK_200M_PLL_25M_HXTAL         (uint32_t)(200000000)
 
 #define GPIO_UART0_RX_PORT GPIOB

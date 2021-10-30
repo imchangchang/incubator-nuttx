@@ -10,6 +10,7 @@ choice
 	prompt "GD32 Chip Selection"
 	default ARCH_CHIP_GD32F450VK
 	depends on ARCH_CHIP_GD32F4XX
+
 ###############################################################################
 # LQFP100
 ###############################################################################
@@ -36,7 +37,25 @@ config ARCH_CHIP_GD32F450VK
 ###############################################################################
 # LQFP144
 ###############################################################################
+config ARCH_CHIP_GD32F450ZE
+	bool "GD32F450ZE LQFP144 512K+0K Flash 256K SRAM"
+	select GD32F450
+	---help---
 
+config ARCH_CHIP_GD32F450ZG
+	bool "GD32F450ZG LQFP144 512K+512K Flash 256K SRAM"
+	select GD32F450
+	---help---
+
+config ARCH_CHIP_GD32F450ZI
+	bool "GD32F450ZI LQFP144 512K+1792K Flash 256K SRAM"
+	select GD32F450
+	---help---
+
+config ARCH_CHIP_GD32F450ZK
+	bool "GD32F450ZK LQFP144 256K+2560K Flash 512K SRAM"
+	select GD32F450
+	---help---
 ###############################################################################
 # BGA176
 ###############################################################################
@@ -55,5 +74,7 @@ menu "GD32F4xx Peripheral Support"
 source arch/arm/src/gd32f4xx/i2c.Kconfig
 
 source arch/arm/src/gd32f4xx/usart.Kconfig
+
+source arch/arm/src/gd32f4xx/spi.Kconfig
 
 endmenu # Peripheral Support

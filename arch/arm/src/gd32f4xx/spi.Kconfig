@@ -1,0 +1,48 @@
+
+##### SPI Selection
+
+comment "SPI Selection"
+
+config GD32_SPI
+	bool
+	default n
+
+config GD32_SPI0
+	bool "SPI0"
+	default n
+	select GD32_SPI
+
+config GD32_SPI1
+	bool "SPI1"
+	default n
+	select GD32_SPI
+
+config GD32_SPI2
+	bool "SPI2"
+	default n
+	select GD32_SPI
+
+##### SPI Configuration
+menu "SPI Configuration"
+	depends on GD32_SPI
+
+comment "SPI Configuration"
+
+#SPI
+
+config GD32_SPI0_FREQUENCY
+	int "SPI0 Frequency (HZ)"
+	depends on GD32_SPI0
+	default 100000
+
+config GD32_SPI1_FREQUENCY
+	int "SPI1 Frequency (HZ)"
+	depends on GD32_SPI1
+	default 100000
+
+config GD32_SPI2_FREQUENCY
+	int "SPI2 Frequency (HZ)"
+	depends on GD32_SPI2
+	default 100000
+
+endmenu # SPI Configuration
