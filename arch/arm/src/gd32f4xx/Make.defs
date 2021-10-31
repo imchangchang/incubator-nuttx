@@ -94,6 +94,7 @@ CHIP_CSRCS += gd32_idle.c
 CHIP_CSRCS += gd32_timerisr.c
 CHIP_CSRCS += gd32_serial.c
 CHIP_CSRCS += gd32_i2c.c
+CHIP_CSRCS += gd32_spi.c
 CHIP_CSRCS += system_gd32f4xx.c
 
 #BSP
@@ -101,3 +102,4 @@ CHIP_CSRCS += gd32f4xx_rcu.c
 CHIP_CSRCS += gd32f4xx_gpio.c
 CHIP_CSRCS += gd32f4xx_usart.c
 CHIP_CSRCS += gd32f4xx_i2c.c
+CHIP_CSRCS += gd32f4xx_spi.c

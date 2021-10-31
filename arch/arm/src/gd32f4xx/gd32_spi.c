@@ -53,38 +53,36 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-struct gd32_spidev_s
-{
-  struct spi_dev_s spidev;       /* Externally visible part of the SPI interface */
-  uint32_t         spi_periph;  
-  uint8_t          spi_irq;       /* SPI IRQ number */
-  bool             initialized;  /* Has SPI interface been initialized */
-  sem_t            exclsem;      /* Held while chip is selected for mutual exclusion */
+struct gd32_spidev_s {
+	struct spi_dev_s spidev; /* Externally visible part of the SPI interface */
+	uint32_t spi_periph;
+	uint8_t spi_irq; /* SPI IRQ number */
+	bool initialized; /* Has SPI interface been initialized */
+	sem_t exclsem; /* Held while chip is selected for mutual exclusion */
 
-  uint32_t         pclk_clock;
-  uint32_t         frequency;    /* Requested clock frequency */
-  uint32_t         actual;       /* Actual clock frequency */
+	uint32_t pclk_clock;
+	uint32_t frequency; /* Requested clock frequency */
+	uint32_t actual; /* Actual clock frequency */
 
-  uint8_t          nbits;        /* Width of word in bits (4 through 16) */
-  uint8_t          mode;         /* Mode 0,1,2,3 */
-  //
-  uint32_t         gpio_mosi_periph;
-  uint32_t         gpio_mosi_pin;
-  uint32_t         gpio_mosi_af;
+	uint8_t nbits; /* Width of word in bits (4 through 16) */
+	uint8_t mode; /* Mode 0,1,2,3 */
+	//
+	uint32_t gpio_mosi_periph;
+	uint32_t gpio_mosi_pin;
+	uint32_t gpio_mosi_af;
 
-  uint32_t         gpio_miso_periph;
-  uint32_t         gpio_miso_pin;
-  uint32_t         gpio_miso_af;
+	uint32_t gpio_miso_periph;
+	uint32_t gpio_miso_pin;
+	uint32_t gpio_miso_af;
 
-  uint32_t         gpio_sck_periph;
-  uint32_t         gpio_sck_pin;
-  uint32_t         gpio_sck_af;
-  spi_param_struct init_struct;
+	uint32_t gpio_sck_periph;
+	uint32_t gpio_sck_pin;
+	uint32_t gpio_sck_af;
+	spi_parameter_struct init_struct;
 };
 
 /****************************************************************************
@@ -93,35 +91,30 @@ struct gd32_spidev_s
 
 /* SPI methods */
 
-static int         spi_lock(FAR struct spi_dev_s *dev, bool lock);
-static uint32_t    spi_setfrequency(FAR struct spi_dev_s *dev,
-                                    uint32_t frequency);
-static void        spi_setmode(FAR struct spi_dev_s *dev,
-                               enum spi_mode_e mode);
-static void        spi_setbits(FAR struct spi_dev_s *dev, int nbits);
+static int spi_lock(FAR struct spi_dev_s *dev, bool lock);
+static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency);
+static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
+static void spi_setbits(FAR struct spi_dev_s *dev, int nbits);
 #ifdef CONFIG_SPI_HWFEATURES
 static int         spi_hwfeatures(FAR struct spi_dev_s *dev,
                                   spi_hwfeatures_t features);
 #endif
-static uint32_t    spi_send(FAR struct spi_dev_s *dev, uint32_t wd);
-static void        spi_exchange(FAR struct spi_dev_s *dev,
-                                FAR const void *txbuffer,
-                                FAR void *rxbuffer, size_t nwords);
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd);
+static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
+		FAR void *rxbuffer, size_t nwords);
 #ifdef CONFIG_SPI_TRIGGER
 static int         spi_trigger(FAR struct spi_dev_s *dev);
 #endif
 #ifndef CONFIG_SPI_EXCHANGE
-static void        spi_sndblock(FAR struct spi_dev_s *dev,
-                                FAR const void *txbuffer,
-                                size_t nwords);
-static void        spi_recvblock(FAR struct spi_dev_s *dev,
-                                 FAR void *rxbuffer,
-                                 size_t nwords);
+static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
+		size_t nwords);
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *rxbuffer,
+		size_t nwords);
 #endif
 
 /* Initialization */
 
-static void        spi_bus_initialize(FAR struct gd32_spidev_s *priv);
+static void spi_bus_initialize(FAR struct gd32_spidev_s *priv);
 
 /****************************************************************************
  * Private Data
@@ -190,16 +183,16 @@ static struct gd32_spidev_s g_spi0dev =
 static uint32_t _get_gpio_rcu_periph(uint32_t gpio_periph) {
 #define GPIO_RCU(gpio) case gpio: return RCU_##gpio
 	switch (gpio_periph) {
-    GPIO_RCU(GPIOA);
-    GPIO_RCU(GPIOB);
-    GPIO_RCU(GPIOC);
-    GPIO_RCU(GPIOD);
-    GPIO_RCU(GPIOE);
-    GPIO_RCU(GPIOF);
-    GPIO_RCU(GPIOG);
-    GPIO_RCU(GPIOH);
-    GPIO_RCU(GPIOI);
-	default:
+	GPIO_RCU(GPIOA)
+;		GPIO_RCU(GPIOB);
+		GPIO_RCU(GPIOC);
+		GPIO_RCU(GPIOD);
+		GPIO_RCU(GPIOE);
+		GPIO_RCU(GPIOF);
+		GPIO_RCU(GPIOG);
+		GPIO_RCU(GPIOH);
+		GPIO_RCU(GPIOI);
+		default:
 		PANIC();
 	}
 #undef GPIO_RCU
@@ -207,15 +200,14 @@ static uint32_t _get_gpio_rcu_periph(uint32_t gpio_periph) {
 
 static uint32_t _get_spi_rcu_periph(uint32_t spi_periph) {
 #define SPI_RCU(spi) case spi: return RCU_##spi
-	switch (spi_periph) 
-  {
-    SPI_RCU(SPI0);
-    SPI_RCU(SPI1);
-    SPI_RCU(SPI2);
-    SPI_RCU(SPI3);
-    SPI_RCU(SPI4);
-    SPI_RCU(SPI5);
-	default:
+	switch (spi_periph) {
+	SPI_RCU(SPI0)
+;		SPI_RCU(SPI1);
+		SPI_RCU(SPI2);
+		SPI_RCU(SPI3);
+		SPI_RCU(SPI4);
+		SPI_RCU(SPI5);
+		default:
 		PANIC();
 	}
 #undef SPI_RCU
@@ -242,21 +234,17 @@ static uint32_t _get_spi_rcu_periph(uint32_t spi_periph) {
  *
  ****************************************************************************/
 
-static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
-{
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  int ret;
+static int spi_lock(FAR struct spi_dev_s *dev, bool lock) {
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
+	int ret;
 
-  if (lock)
-    {
-      ret = nxsem_wait_uninterruptible(&priv->exclsem);
-    }
-  else
-    {
-      ret = nxsem_post(&priv->exclsem);
-    }
+	if (lock) {
+		ret = nxsem_wait_uninterruptible(&priv->exclsem);
+	} else {
+		ret = nxsem_post(&priv->exclsem);
+	}
 
-  return ret;
+	return ret;
 }
 
 /****************************************************************************
@@ -274,69 +262,52 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
  *
  ****************************************************************************/
 
-static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
-                                 uint32_t frequency)
-{
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  uint32_t psc;
+static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency) {
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
+	uint32_t psc;
+	uint32_t actual;
 
-  if (frequency != priv->frequency)
-    {
-      /* Choices are limited by PCLK frequency with a set of divisors */
+	if (frequency != priv->frequency) {
+		/* Choices are limited by PCLK frequency with a set of divisors */
 
-      if (frequency >= priv->spiclock >> 1)
-        {
-          psc =  SPI_PSC_2;
-          actual = priv->spiclock >> 1;
-        }
-      else if (frequency >= priv->spiclock >> 2)
-        {
-          psc = SPI_PSC_4;
-          actual = priv->spiclock >> 2;
-        }
-      else if (frequency >= priv->spiclock >> 3)
-        {
-          psc = SPI_PSC_8;
-          actual = priv->spiclock >> 3;
-        }
-      else if (frequency >= priv->spiclock >> 4)
-        {
-          psc = SPI_PSC_16;
-          actual = priv->spiclock >> 4;
-        }
-      else if (frequency >= priv->spiclock >> 5)
-        {
-          psc = SPI_PSC_32;
-          actual = priv->spiclock >> 5;
-        }
-      else if (frequency >= priv->spiclock >> 6)
-        {
-          psc = SPI_PSC_64;
-          actual = priv->spiclock >> 6;
-        }
-      else if (frequency >= priv->spiclock >> 7)
-        {
-          psc = SPI_PSC_128;
-          actual = priv->spiclock >> 7;
-        }
-      else
-        {
-          psc = SPI_PSC_256;
-          actual = priv->spiclock >> 8;
-        }
-      
-      uint32_t reg = 0u;
-      reg = SPI_CTL0(priv->spi_periph);
-      reg |= psc;
-      SPI_CTL0(priv->spi_periph) = (uint32_t)reg;
+		if (frequency >= priv->pclk_clock >> 1) {
+			psc = SPI_PSC_2;
+			actual = priv->pclk_clock >> 1;
+		} else if (frequency >= priv->pclk_clock >> 2) {
+			psc = SPI_PSC_4;
+			actual = priv->pclk_clock >> 2;
+		} else if (frequency >= priv->pclk_clock >> 3) {
+			psc = SPI_PSC_8;
+			actual = priv->pclk_clock >> 3;
+		} else if (frequency >= priv->pclk_clock >> 4) {
+			psc = SPI_PSC_16;
+			actual = priv->pclk_clock >> 4;
+		} else if (frequency >= priv->pclk_clock >> 5) {
+			psc = SPI_PSC_32;
+			actual = priv->pclk_clock >> 5;
+		} else if (frequency >= priv->pclk_clock >> 6) {
+			psc = SPI_PSC_64;
+			actual = priv->pclk_clock >> 6;
+		} else if (frequency >= priv->pclk_clock >> 7) {
+			psc = SPI_PSC_128;
+			actual = priv->pclk_clock >> 7;
+		} else {
+			psc = SPI_PSC_256;
+			actual = priv->pclk_clock >> 8;
+		}
 
-      spiinfo("Frequency %" PRIu32 "->%" PRIu32 "\n", frequency, actual);
+		uint32_t reg = 0u;
+		reg = SPI_CTL0(priv->spi_periph);
+		reg |= psc;
+		SPI_CTL0(priv->spi_periph) = (uint32_t) reg;
 
-      priv->frequency = frequency;
-      priv->actual    = actual;
-    }
+		spiinfo ("Frequency %" PRIu32 "->%" PRIu32 "\n", frequency, actual);
 
-  return priv->actual;
+		priv->frequency = frequency;
+		priv->actual = actual;
+	}
+
+	return priv->actual;
 }
 
 /****************************************************************************
@@ -354,88 +325,45 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
  *
  ****************************************************************************/
 
-static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
-{
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  uint16_t setbits;
-  uint16_t clrbits;
+static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode) {
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
 
-  spiinfo("mode=%d\n", mode);
+	uint32_t spi_clock_pl_and_ph = SPI_CK_PL_LOW_PH_1EDGE;
 
-  /* Has the mode changed? */
+	spiinfo ("mode=%d\n", mode);
 
-  if (mode != priv->mode)
-    {
-      /* Yes... Set CR1 appropriately */
+	if (mode != priv->mode) {
+		switch (mode) {
+		case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
+			spi_clock_pl_and_ph = SPI_CK_PL_LOW_PH_1EDGE;
+			break;
 
-      switch (mode)
-        {
-        case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
-          setbits = 0;
-          clrbits = SPI_CR1_CPOL | SPI_CR1_CPHA;
-          break;
+		case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
+			spi_clock_pl_and_ph = SPI_CK_PL_HIGH_PH_1EDGE;
+			break;
 
-        case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
-          setbits = SPI_CR1_CPHA;
-          clrbits = SPI_CR1_CPOL;
-          break;
+		case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
+			spi_clock_pl_and_ph = SPI_CK_PL_LOW_PH_2EDGE;
+			break;
 
-        case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
-          setbits = SPI_CR1_CPOL;
-          clrbits = SPI_CR1_CPHA;
-          break;
+		case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
+			spi_clock_pl_and_ph = SPI_CK_PL_HIGH_PH_2EDGE;
+			break;
 
-        case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
-          setbits = SPI_CR1_CPOL | SPI_CR1_CPHA;
-          clrbits = 0;
-          break;
+		case SPIDEV_MODETI:
+			spi_clock_pl_and_ph = SPI_CK_PL_LOW_PH_1EDGE;
+			break;
 
-#ifdef SPI_CR2_FRF    /* If MCU supports TI Synchronous Serial Frame Format */
-        case SPIDEV_MODETI:
-          setbits = 0;
-          clrbits = SPI_CR1_CPOL | SPI_CR1_CPHA;
-          break;
-#endif
+		default:
+			return;
+		}
 
-        default:
-          return;
-        }
-
-        spi_modifycr1(priv, 0, SPI_CR1_SPE);
-        spi_modifycr1(priv, setbits, clrbits);
-        spi_modifycr1(priv, SPI_CR1_SPE, 0);
-
-#ifdef SPI_CR2_FRF    /* If MCU supports TI Synchronous Serial Frame Format */
-      switch (mode)
-        {
-          case SPIDEV_MODE0:
-          case SPIDEV_MODE1:
-          case SPIDEV_MODE2:
-          case SPIDEV_MODE3:
-            setbits = 0;
-            clrbits = SPI_CR2_FRF;
-            break;
-
-          case SPIDEV_MODETI:
-            setbits = SPI_CR2_FRF;
-            clrbits = 0;
-            break;
-
-          default:
-            return;
-        }
-
-      spi_modifycr1(priv, 0, SPI_CR1_SPE);
-      spi_modifycr2(priv, setbits, clrbits);
-      spi_modifycr1(priv, SPI_CR1_SPE, 0);
-#endif
-
-        /* Save the mode so that subsequent re-configurations will be
-         * faster
-         */
-
-        priv->mode = mode;
-    }
+		uint32_t reg = 0U;
+		reg = SPI_CTL0(priv->spi_periph);
+		reg |= spi_clock_pl_and_ph;
+		SPI_CTL0(priv->spi_periph) = (uint32_t) reg;
+		priv->mode = mode;
+	}
 }
 
 /****************************************************************************
@@ -453,77 +381,31 @@ static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
  *
  ****************************************************************************/
 
-static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
-{
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  uint16_t setbits;
-  uint16_t clrbits;
+static void spi_setbits(FAR struct spi_dev_s *dev, int nbits) {
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
+	uint32_t frame_size;
+	spiinfo ("nbits=%d\n", nbits);
 
-  spiinfo("nbits=%d\n", nbits);
+	if (nbits != priv->nbits) {
+		switch (nbits) {
+		case 8:
+			frame_size = SPI_FRAMESIZE_8BIT;
+			break;
 
-  /* Has the number of bits changed? */
+		case 16:
+			frame_size = SPI_FRAMESIZE_8BIT;
+			break;
 
-  if (nbits != priv->nbits)
-    {
-#if defined(CONFIG_GD32_GD32F30XX) || defined(CONFIG_GD32_GD32F37XX)
-      /* Yes... Set CR2 appropriately */
+		default:
+			return;
+		}
 
-      /* Set the number of bits (valid range 4-16) */
-
-      if (nbits < 4 || nbits > 16)
-        {
-          spierr("ERROR: nbits out of range: %d\n", nbits);
-          return;
-        }
-
-      clrbits = SPI_CR2_DS_MASK;
-      setbits = SPI_CR2_DS(nbits);
-
-      /* If nbits is <=8, then we are in byte mode and FRXTH must be set
-       * (else, transaction will not complete).
-       */
-
-      if (nbits < 9)
-        {
-          setbits |= SPI_CR2_FRXTH; /* RX FIFO Threshold = 1 byte */
-        }
-      else
-        {
-          clrbits |= SPI_CR2_FRXTH; /* RX FIFO Threshold = 2 bytes */
-        }
-
-      spi_modifycr1(priv, 0, SPI_CR1_SPE);
-      spi_modifycr2(priv, setbits, clrbits);
-      spi_modifycr1(priv, SPI_CR1_SPE, 0);
-#else
-      /* Yes... Set CR1 appropriately */
-
-      switch (nbits)
-        {
-        case 8:
-          setbits = 0;
-          clrbits = SPI_CR1_DFF;
-          break;
-
-        case 16:
-          setbits = SPI_CR1_DFF;
-          clrbits = 0;
-          break;
-
-        default:
-          return;
-        }
-
-      spi_modifycr1(priv, 0, SPI_CR1_SPE);
-      spi_modifycr1(priv, setbits, clrbits);
-      spi_modifycr1(priv, SPI_CR1_SPE, 0);
-#endif
-      /* Save the selection so that subsequent re-configurations will be
-       * faster.
-       */
-
-      priv->nbits = nbits;
-    }
+		uint32_t reg = 0U;
+		reg = SPI_CTL0(priv->spi_periph);
+		reg |= frame_size;
+		SPI_CTL0(priv->spi_periph) = (uint32_t)reg;
+		priv->nbits = nbits;
+	}
 }
 
 /****************************************************************************
@@ -551,8 +433,7 @@ static int spi_hwfeatures(FAR struct spi_dev_s *dev,
 #endif
 
 #ifdef CONFIG_SPI_BITORDER
-  uint16_t setbits;
-  uint16_t clrbits;
+  uint32_t bitorder;
 
   spiinfo("features=%08x\n", features);
 
@@ -560,18 +441,16 @@ static int spi_hwfeatures(FAR struct spi_dev_s *dev,
 
   if ((features & HWFEAT_LSBFIRST) != 0)
     {
-      setbits = SPI_CR1_LSBFIRST;
-      clrbits = 0;
+	  bitorder = SPI_ENDIAN_LSB;
     }
   else
     {
-      setbits = 0;
-      clrbits = SPI_CR1_LSBFIRST;
+	  bitorder = SPI_ENDIAN_MSB;
     }
-
-  spi_modifycr1(priv, 0, SPI_CR1_SPE);
-  spi_modifycr1(priv, setbits, clrbits);
-  spi_modifycr1(priv, SPI_CR1_SPE, 0);
+  uint32_t reg = 0U;
+  reg = SPI_CTL0(priv->spi_periph);
+  reg |= bitorder;
+  SPI_CTL0(priv->spi_periph) = (uint32_t)reg;
 
   features &= ~HWFEAT_LSBFIRST;
 #endif
@@ -582,8 +461,6 @@ static int spi_hwfeatures(FAR struct spi_dev_s *dev,
  * subsequent call to SPI_TRIGGER to set it off. The thread will be waiting
  * on the transfer completing as normal.
  */
-
-  priv->defertrig = ((features & HWFEAT_TRIGGER) != 0);
   features &= ~HWFEAT_TRIGGER;
 #endif
 
@@ -609,28 +486,22 @@ static int spi_hwfeatures(FAR struct spi_dev_s *dev,
  *
  ****************************************************************************/
 
-static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
-{
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  uint32_t regval;
-  uint32_t ret;
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd) {
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
+	uint32_t regval;
+	uint32_t ret;
 
-  DEBUGASSERT(priv && priv->spibase);
+    while(RESET == spi_i2s_flag_get(priv->spi_periph, SPI_FLAG_TBE));
+	spi_i2s_data_transmit(priv->spi_periph, (uint32_t) (wd & 0xffff));
+    while(RESET == spi_i2s_flag_get(priv->spi_periph, SPI_FLAG_RBNE));
+	ret = (uint32_t) spi_i2s_data_receive(priv->spi_periph);
 
-  spi_writeword(priv, (uint32_t)(wd & 0xffff));
-  ret = (uint32_t)spi_readword(priv);
+	regval = SPI_STAT(priv->spi_periph);
 
-  /* Check and clear any error flags
-   * (Reading from the SR clears the error flags)
-   */
+	spiinfo ("Sent: %04" PRIx32 " Return: %04" PRIx32
+	" Status: %02" PRIx32 "\n", wd, ret, regval);
 
-  regval = spi_getreg(priv, GD32_SPI_SR_OFFSET);
-
-  spiinfo("Sent: %04" PRIx32 " Return: %04" PRIx32
-          " Status: %02" PRIx32 "\n", wd, ret, regval);
-  UNUSED(regval);
-
-  return ret;
+	return ret;
 }
 
 /****************************************************************************
@@ -658,92 +529,69 @@ static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_GD32_SPI_DMA) || defined(CONFIG_GD32_DMACAPABLE) || \
-     defined(CONFIG_GD32_SPI_DMATHRESHOLD)
-#if !defined(CONFIG_GD32_SPI_DMA)
 static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
-                         FAR void *rxbuffer, size_t nwords)
-#else
-static void spi_exchange_nodma(FAR struct spi_dev_s *dev,
-                               FAR const void *txbuffer,
-                               FAR void *rxbuffer, size_t nwords)
-#endif
+		FAR void *rxbuffer, size_t nwords)
 {
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-  DEBUGASSERT(priv && priv->spibase);
+	FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s*) dev;
 
-  spiinfo("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
+	spiinfo ("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
 
-  /* 8- or 16-bit mode? */
+	/* 8- or 16-bit mode? */
 
-  if (priv->nbits > 8)
-    {
-      /* 16-bit mode */
+	if (priv->nbits > 8) {
+		/* 16-bit mode */
 
-      const uint16_t *src  = (const uint16_t *)txbuffer;
-            uint16_t *dest = (uint16_t *)rxbuffer;
-            uint16_t  word;
+		const uint16_t *src = (const uint16_t*) txbuffer;
+		uint16_t *dest = (uint16_t*) rxbuffer;
+		uint16_t word;
 
-      while (nwords-- > 0)
-        {
-          /* Get the next word to write.  Is there a source buffer? */
+		while (nwords-- > 0) {
+			/* Get the next word to write.  Is there a source buffer? */
 
-          if (src)
-            {
-              word = *src++;
-            }
-          else
-            {
-              word = 0xffff;
-            }
+			if (src) {
+				word = *src++;
+			} else {
+				word = 0xffff;
+			}
 
-          /* Exchange one word */
+			/* Exchange one word */
 
-          word = (uint16_t)spi_send(dev, (uint32_t)word);
+			word = (uint16_t) spi_send(dev, (uint32_t) word);
 
-          /* Is there a buffer to receive the return value? */
+			/* Is there a buffer to receive the return value? */
 
-          if (dest)
-            {
-              *dest++ = word;
-            }
-        }
-    }
-  else
-    {
-      /* 8-bit mode */
+			if (dest) {
+				*dest++ = word;
+			}
+		}
+	} else {
+		/* 8-bit mode */
 
-      const uint8_t *src  = (const uint8_t *)txbuffer;
-            uint8_t *dest = (uint8_t *)rxbuffer;
-            uint8_t  word;
+		const uint8_t *src = (const uint8_t*) txbuffer;
+		uint8_t *dest = (uint8_t*) rxbuffer;
+		uint8_t word;
 
-      while (nwords-- > 0)
-        {
-          /* Get the next word to write.  Is there a source buffer? */
+		while (nwords-- > 0) {
+			/* Get the next word to write.  Is there a source buffer? */
 
-          if (src)
-            {
-              word = *src++;
-            }
-          else
-            {
-              word = 0xff;
-            }
+			if (src) {
+				word = *src++;
+			} else {
+				word = 0xff;
+			}
 
-          /* Exchange one word */
+			/* Exchange one word */
 
-          word = (uint8_t)spi_send(dev, (uint32_t)word);
+			word = (uint8_t) spi_send(dev, (uint32_t) word);
 
-          /* Is there a buffer to receive the return value? */
+			/* Is there a buffer to receive the return value? */
 
-          if (dest)
-            {
-              *dest++ = word;
-            }
-        }
-    }
+			if (dest) {
+				*dest++ = word;
+			}
+		}
+	}
 }
-#endif /* !CONFIG_GD32_SPI_DMA || CONFIG_GD32_DMACAPABLE || CONFIG_GD32_SPI_DMATHRESHOLD */
 
 /****************************************************************************
  * Name: spi_trigger
@@ -764,21 +612,7 @@ static void spi_exchange_nodma(FAR struct spi_dev_s *dev,
 #ifdef CONFIG_SPI_TRIGGER
 static int spi_trigger(FAR struct spi_dev_s *dev)
 {
-#ifdef CONFIG_GD32_SPI_DMA
-  FAR struct gd32_spidev_s *priv = (FAR struct gd32_spidev_s *)dev;
-
-  if (!priv->trigarmed)
-    {
-      return -EIO;
-    }
-
-  spi_dmarxstart(priv);
-  spi_dmatxstart(priv);
-
-  return OK;
-#else
   return -ENOSYS;
-#endif
 }
 #endif
 
@@ -804,12 +638,10 @@ static int spi_trigger(FAR struct spi_dev_s *dev)
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_sndblock(FAR struct spi_dev_s *dev,
-                         FAR const void *txbuffer,
-                         size_t nwords)
-{
-  spiinfo("txbuffer=%p nwords=%d\n", txbuffer, nwords);
-  return spi_exchange(dev, txbuffer, NULL, nwords);
+static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
+		size_t nwords) {
+	spiinfo ("txbuffer=%p nwords=%d\n", txbuffer, nwords);
+	return spi_exchange(dev, txbuffer, NULL, nwords);
 }
 #endif
 
@@ -834,12 +666,10 @@ static void spi_sndblock(FAR struct spi_dev_s *dev,
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_recvblock(FAR struct spi_dev_s *dev,
-                          FAR void *rxbuffer,
-                          size_t nwords)
-{
-  spiinfo("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
-  return spi_exchange(dev, NULL, rxbuffer, nwords);
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *rxbuffer,
+		size_t nwords) {
+	spiinfo ("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
+	return spi_exchange(dev, NULL, rxbuffer, nwords);
 }
 #endif
 
@@ -858,54 +688,48 @@ static void spi_recvblock(FAR struct spi_dev_s *dev,
  *
  ****************************************************************************/
 
-static void spi_bus_initialize(FAR struct gd32_spidev_s *priv)
-{
-  rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_mosi_periph));
-  rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_mis0_periph));
-  rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_sck_periph));
-  rcu_periph_clock_enable(_get_spi_rcu_periph(priv->spi_periph));
+static void spi_bus_initialize(FAR struct gd32_spidev_s *priv) {
+	rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_mosi_periph));
+	rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_miso_periph));
+	rcu_periph_clock_enable(_get_gpio_rcu_periph(priv->gpio_sck_periph));
+	rcu_periph_clock_enable(_get_spi_rcu_periph(priv->spi_periph));
 
 #define GPIO_INIT(type) \
 do{\
   gpio_af_set(priv->gpio_##type##_periph, priv->gpio_##type##_af, priv->gpio_##type##_pin);\
   gpio_mode_set(priv->gpio_##type##_periph, GPIO_MODE_AF, GPIO_PUPD_NONE, priv->gpio_##type##_pin);\
-  gpio_output_options_set(priv->gpio_##type##_periph, GPIO_OTYEP_PP, GPIO_OSPEED_50MHZ, priv->gpio_##type##_pin);\
+  gpio_output_options_set(priv->gpio_##type##_periph, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, priv->gpio_##type##_pin);\
 }while(0)
 
-  GPIO_INIT(mosi);
-  GPIO_INIT(miso);
-  GPIO_INIT(sck);
+	GPIO_INIT(mosi);
+	GPIO_INIT(miso);
+	GPIO_INIT(sck);
 #undef GPIO_INIT
 
-  if (priv->spi_periph == SPI0 || 
-      priv->spi_periph == SPI3 ||
-      priv->spi_periph == SPI4 ||
-      priv->spi_periph == SPI5)
-  {
-    priv->pclk_clock = rcu_clock_freq_get(CK_APB1);
-  }
-  else{
-    priv->pclk_clock = rcu_clock_freq_get(CK_APB2);
-  }
+	if (priv->spi_periph == SPI0 || priv->spi_periph == SPI3
+			|| priv->spi_periph == SPI4 || priv->spi_periph == SPI5) {
+		priv->pclk_clock = rcu_clock_freq_get(CK_APB1);
+	} else {
+		priv->pclk_clock = rcu_clock_freq_get(CK_APB2);
+	}
 
-  spi_struct_para_init(&priv->init_struct);
+	spi_struct_para_init(&priv->init_struct);
 
-  priv->init_struct.trans_mode           = SPI_TRANSMODE_FULLDUPLEX;
-  priv->init_struct.device_mode          = SPI_MASTER;
-  priv->init_struct.frame_size           = SPI_FRAMESIZE_8BIT;
-  priv->init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_2EDGE;
-  priv->init_struct.nss                  = SPI_NSS_SOFT;
-  priv->init_struct.prescale             = SPI_PSC_2;
-  priv->init_struct.endian               = SPI_ENDIAN_MSB;
+	priv->init_struct.trans_mode = SPI_TRANSMODE_FULLDUPLEX;
+	priv->init_struct.device_mode = SPI_MASTER;
+	priv->init_struct.frame_size = SPI_FRAMESIZE_8BIT;
+	priv->init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_2EDGE;
+	priv->init_struct.nss = SPI_NSS_SOFT;
+	priv->init_struct.prescale = SPI_PSC_2;
+	priv->init_struct.endian = SPI_ENDIAN_MSB;
 
-  spi_init(priv->spi_periph, &priv->init_struct);
+	spi_init(priv->spi_periph, &priv->init_struct);
 
-  spi_setfrequency(400000); //default 400K
+	spi_setfrequency(priv, 400000); //default 400K
 
-  
-  nxsem_init(&priv->exclsem, 0, 1);
+	nxsem_init(&priv->exclsem, 0, 1);
 
-  spi_enabld(priv->spi_periph);
+	spi_enable(priv->spi_periph);
 }
 
 /****************************************************************************
@@ -926,11 +750,10 @@ do{\
  *
  ****************************************************************************/
 
-FAR struct spi_dev_s *gd32_spibus_initialize(int bus)
-{
-  FAR struct gd32_spidev_s *priv = NULL;
+FAR struct spi_dev_s* gd32_spibus_initialize(int bus) {
+	FAR struct gd32_spidev_s *priv = NULL;
 
-  irqstate_t flags = enter_critical_section();
+	irqstate_t flags = enter_critical_section();
 
 #define GD32_SPI_INIT(n) \
 case (n):\
@@ -942,9 +765,7 @@ case (n):\
   }\
   break
 
-
-  switch (bus)
-  {
+	switch (bus) {
 #ifdef CONFIG_GD32_SPI0
   GD32_SPI_INIT(0);
 #endif
@@ -963,12 +784,12 @@ case (n):\
 #ifdef CONFIG_GD32_SPI5
   GD32_SPI_INIT(5);
 #endif
-  default:
-    PANIC();
+	default:
+		PANIC();
 #undef GD32_SPI_INIT
-  }
-  leave_critical_section(flags);
-  return (FAR struct spi_dev_s *)priv;
+	}
+	leave_critical_section(flags);
+	return (FAR struct spi_dev_s*) priv;
 }
 
 #endif /* #ifdef CONFIG_GD32_SPI */
