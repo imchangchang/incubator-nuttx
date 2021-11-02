@@ -1,0 +1,38 @@
+
+##### CAN Selection
+
+
+comment "CAN Selection"
+
+config GD32_CAN
+	bool
+	default n
+
+config GD32_CAN0
+	bool "CAN0"
+	default n
+	select GD32_CAN0
+
+config GD32_CAN1
+	bool "CAN1"
+	default n
+	select GD32_CAN
+
+##### CAN Configuration
+menu "CAN Configuration"
+	depends on GD32_CAN
+
+comment "CAN Configuration"
+
+config GD32_CAN0_FREQUENCY
+	int "CAN0 Frequency (HZ)"
+	depends on GD32_CAN0
+	default 100000
+
+config GD32_CAN1_FREQUENCY
+	int "CAN1 Frequency (HZ)"
+	depends on GD32_CAN1
+	default 100000
+
+endmenu #CAN Configuration
+

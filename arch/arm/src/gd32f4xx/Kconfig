@@ -71,10 +71,9 @@ config GD32F450
 
 menu "GD32F4xx Peripheral Support"
 
-source arch/arm/src/gd32f4xx/i2c.Kconfig
-
-source arch/arm/src/gd32f4xx/usart.Kconfig
-
-source arch/arm/src/gd32f4xx/spi.Kconfig
+source "arch/arm/src/gd32f4xx/i2c.Kconfig"
+source "arch/arm/src/gd32f4xx/usart.Kconfig"
+source "arch/arm/src/gd32f4xx/spi.Kconfig"
+source "arch/arm/src/gd32f4xx/can.Kconfig"
 
 endmenu # Peripheral Support
