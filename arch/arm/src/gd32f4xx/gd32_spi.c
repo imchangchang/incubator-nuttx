@@ -201,8 +201,8 @@ static uint32_t _get_gpio_rcu_periph(uint32_t gpio_periph) {
 static uint32_t _get_spi_rcu_periph(uint32_t spi_periph) {
 #define SPI_RCU(spi) case spi: return RCU_##spi
 	switch (spi_periph) {
-	SPI_RCU(SPI0)
-;		SPI_RCU(SPI1);
+		SPI_RCU(SPI0)
+		SPI_RCU(SPI1);
 		SPI_RCU(SPI2);
 		SPI_RCU(SPI3);
 		SPI_RCU(SPI4);
