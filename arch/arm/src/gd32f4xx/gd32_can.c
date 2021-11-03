@@ -413,20 +413,12 @@ static void gd32can_shutdown(FAR struct can_dev_s *dev) {
 
 static void gd32can_rxint(FAR struct can_dev_s *dev, bool enable) {
 	FAR struct gd32_can_s *priv = dev->cd_priv;
-	uint32_t regval;
 
 	caninfo ("CAN%d enable: %d\n", priv->port, enable);
 
 	/* Enable/disable the FIFO 0/1 message pending interrupt */
+  UNUSED(priv);
 
-	regval = gd32can_getreg(priv, GD32_CAN_IER_OFFSET);
-	if (enable) {
-		regval |= CAN_IER_FMPIE0 | CAN_IER_FMPIE1;
-	} else {
-		regval &= ~(CAN_IER_FMPIE0 | CAN_IER_FMPIE1);
-	}
-
-	gd32can_putreg(priv, GD32_CAN_IER_OFFSET, regval);
 }
 
 /****************************************************************************
@@ -445,17 +437,11 @@ static void gd32can_rxint(FAR struct can_dev_s *dev, bool enable) {
 
 static void gd32can_txint(FAR struct can_dev_s *dev, bool enable) {
 	FAR struct gd32_can_s *priv = dev->cd_priv;
-	uint32_t regval;
 
 	caninfo ("CAN%d enable: %d\n", priv->port, enable);
 
 	/* Support only disabling the transmit mailbox interrupt */
-
-	if (!enable) {
-		regval = gd32can_getreg(priv, GD32_CAN_IER_OFFSET);
-		regval &= ~CAN_IER_TMEIE;
-		gd32can_putreg(priv, GD32_CAN_IER_OFFSET, regval);
-	}
+  UNUSED(priv);
 }
 
 /****************************************************************************
