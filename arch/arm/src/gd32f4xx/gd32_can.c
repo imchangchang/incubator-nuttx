@@ -91,6 +91,14 @@ struct gd32_can_s {
 	uint8_t cantx; /* CAN TX IRQ number */
 	uint8_t filter; /* Filter number */
 	uint32_t baud; /* Configured baud */
+
+  uint32_t gpio_rx_periph;
+  uint32_t gpio_rx_af;
+  uint32_t gpio_rx_pin;
+
+  uint32_t gpio_tx_periph;
+  uint32_t gpio_tx_af;
+  uint32_t gpio_tx_pin;
 };
 
 /****************************************************************************
@@ -182,6 +190,12 @@ static struct gd32_can_s g_can0priv =
   .cantx            = GD32_IRQ_NUM(CAN0_TX_IRQn),
   .filter           = 0,
   .baud             = CONFIG_GD32_CAN0_BAUD,
+  .gpio_rx_periph   = GPIO_CAN0_RX_PORT,
+  .gpio_rx_af       = GPIO_CAN0_RX_AF,
+  .gpio_rx_pin      = GPIO_CAN0_RX_PIN,
+  .gpio_tx_periph   = GPIO_CAN0_TX_PORT,
+  .gpio_tx_af       = GPIO_CAN0_TX_AF,
+  .gpio_tx_pin      = GPIO_CAN0_TX_PIN,
 };
 
 static struct can_dev_s g_can0dev =
@@ -223,6 +237,23 @@ static uint32_t _get_can_rcu_periph(uint32_t can_periph) {
 #undef CAN_RCU
 }
 
+static uint32_t _can_gpio_rcu_init(FAR struct gd32_can_s *priv){
+
+  rcu_periph_clock_enable(_get_can_rcu_periph(priv->can_periph));
+  rcu_periph_clock_enable(_get_can_rcu_periph(priv->gpio_rx_periph));
+  rcu_periph_clock_enable(_get_can_rcu_periph(priv->gpio_tx_periph));
+
+  gpio_outpu_options_set(priv->gpio_rx_periph, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, priv->gpio_rx_pin);
+  gpio_mode_set(priv->gpio_rx_periph, GPIO_MODE_AF, GPIO_PUPD_NONE, priv->gpio_rx_pin);
+  gpio_af_set(priv->gpio_rx_periph, priv->gpio_rx_af, priv->gpio_rx_pin);
+  
+  gpio_outpu_options_set(priv->gpio_tx_periph, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, priv->gpio_tx_pin);
+  gpio_mode_set(priv->gpio_tx_periph, GPIO_MODE_AF, GPIO_PUPD_NONE, priv->gpio_tx_pin);
+  gpio_af_set(priv->gpio_tx_periph, priv->gpio_tx_af, priv->gpio_tx_pin);
+
+  return OK;
+}
+
 /****************************************************************************
  * Name: gd32can_reset
  *
@@ -249,6 +280,10 @@ static void gd32can_reset(FAR struct can_dev_s *dev) {
 	 */
 
 	flags = enter_critical_section();
+
+  caninfo("Before reset:0x%08x", CAN_CTL(priv->can_periph));
+  CAN_CTL(priv->can_periph) |= CAN_CTL_SWRST;
+  caninfo("After reset:0x%08x", CAN_CTL(priv->can_periph));
 
 	/* Reset the CAN */
 
@@ -279,6 +314,7 @@ static int gd32can_setup(FAR struct can_dev_s *dev) {
 	caninfo ("CAN%d RX0 irq: %d RX1 irq: %d TX irq: %d\n", priv->port, priv->canrx[0], priv->canrx[1], priv->cantx);
 
 	/* CAN cell initialization */
+  _can_gpio_rcu_init(priv);
 	ret = gd32can_cellinit(priv);
 	if (ret < 0) {
 		canerr ("ERROR: CAN%d cell initialization failed: %d\n", priv->port, ret);
