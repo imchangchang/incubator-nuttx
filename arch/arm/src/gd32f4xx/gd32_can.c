@@ -928,17 +928,19 @@ static int gd32can_cellinit(FAR struct gd32_can_s *priv) {
         uint32_t calc_baud = can_clk/(priv->psc * bit_time_unit);
         if (can_baud == calc_baud)
         {
+          caninfo("can_baud:%d, calc_baud:%d\n", can_baud, calc_baud);
           priv->sample_point = ((priv->sjw + priv->bs1) * 1000) / bit_time_unit;
           if (priv->sample_point >= (CONFIG_GD32_CAN_SAMPLE_POINT - 50) &&
               priv->sample_point <= (CONFIG_GD32_CAN_SAMPLE_POINT + 50))
           {
             timing_found = true;
+            goto found_timing;
           }
         }
       }
     }
   }
-
+found_timing:
   if (!timing_found)
   {
     canerr("ERROR: failed to calc bit timing!\n");
