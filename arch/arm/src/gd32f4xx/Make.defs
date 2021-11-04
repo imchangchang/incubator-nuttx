@@ -105,3 +105,4 @@ CHIP_CSRCS += gd32f4xx_usart.c
 CHIP_CSRCS += gd32f4xx_i2c.c
 CHIP_CSRCS += gd32f4xx_spi.c
 CHIP_CSRCS += gd32f4xx_can.c
+CHIP_CSRCS += gd32f4xx_dbg.c

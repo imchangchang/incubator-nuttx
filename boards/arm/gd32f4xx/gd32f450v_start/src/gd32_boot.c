@@ -2,5 +2,6 @@
 
 void gd32_boardinitialize(void)
 {
-
 }
+
+

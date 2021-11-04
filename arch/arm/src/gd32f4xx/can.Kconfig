@@ -11,7 +11,7 @@ config GD32_CAN
 config GD32_CAN0
 	bool "CAN0"
 	default n
-	select GD32_CAN0
+	select GD32_CAN
 
 config GD32_CAN1
 	bool "CAN1"
@@ -29,13 +29,9 @@ config GD32_CAN0_BAUD
 	depends on GD32_CAN0
 	default 500000 
 
-config GD32_CAN_TSEG1
-	int "TESG1 quanta
-	default 6
-
-config GD32_CAN_TSEG2
-	int "TESG2 quanta
-	default 7
+config GD32_CAN_SAMPLE_POINT
+	int "CAN Sample-Point in 0.1%"
+	default 750
 
 
 endmenu #CAN Configuration

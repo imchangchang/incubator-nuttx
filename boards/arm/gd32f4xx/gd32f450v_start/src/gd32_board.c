@@ -7,8 +7,16 @@
 #include <nuttx/board.h>
 #include <stdio.h>
 #include "gd32_i2c.h"
+#include "gd32_can.h"
+
+void board_early_initialize(void)
+{
+	struct can_dev_s * can0 = gd32_caninitialize(0);
+	can_register("/dev/can0", can0);
+}
 
 int board_app_initialize(uintptr_t arg) {
+
 	return 0;
 }
 
