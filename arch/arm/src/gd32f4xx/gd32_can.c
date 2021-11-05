@@ -782,32 +782,24 @@ static int gd32can_rxinterrupt(FAR struct can_dev_s *dev, int fifo_num) {
 	FAR struct gd32_can_s *priv;
 	struct can_hdr_s hdr = {0};
 	uint8_t data[CAN_MAXDATALEN];
-  can_receive_message_struct recv_msg;
+	can_receive_message_struct recv_msg;
 	int ret;
 
 	DEBUGASSERT(dev != NULL && dev->cd_priv != NULL);
 	priv = dev->cd_priv;
 
-  if (can_interrupt_flag_get(priv->can_periph, CAN_INT_FLAG_RFL0) == SET)
-  {
-    can_message_receive(priv->can_periph, fifo_num, &recv_msg);
-    hdr.ch_id = recv_msg.rx_sfid;
-    hdr.ch_unused = 0;
-    hdr.ch_dlc = recv_msg.rx_dlen;
-    memcpy(data, recv_msg.rx_data, 8);
-    ret = can_receive(dev, &hdr, data);
-    can_interrupt_flag_clear(priv->can_periph, CAN_INT_FLAG_RFL0);
-  }
-  else if (can_interrupt_flag_get(priv->can_periph, CAN_INT_FLAG_RFL1) == SET)
-  {
-    can_message_receive(priv->can_periph, fifo_num, &recv_msg);
-    hdr.ch_id = recv_msg.rx_sfid;
-    hdr.ch_unused = 0;
-    hdr.ch_dlc = recv_msg.rx_dlen;
-    memcpy(data, recv_msg.rx_data, 8);
-    ret = can_receive(dev, &hdr, data);
-    can_interrupt_flag_clear(priv->can_periph, CAN_INT_FLAG_RFL1);
-  }
+	uint8_t msg_num = can_receive_message_length_get(priv->can_periph, fifo_num);
+
+	if (msg_num > 0)
+	{
+		can_message_receive(priv->can_periph, fifo_num, &recv_msg);
+		hdr.ch_id = recv_msg.rx_sfid;
+		hdr.ch_unused = 0;
+		hdr.ch_dlc = recv_msg.rx_dlen;
+		memcpy(data, recv_msg.rx_data,  hdr.ch_dlc);
+		ret = can_receive(dev, &hdr, data);
+	}
+
 	return ret;
 }
 
