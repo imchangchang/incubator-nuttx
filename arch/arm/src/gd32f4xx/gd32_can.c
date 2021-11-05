@@ -66,20 +66,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Delays *******************************************************************/
-
-/* Time out for INAK bit */
-
-#define INAK_TIMEOUT 65535
-
-/* Bit timing ***************************************************************/
-
-#define CAN_BIT_QUANTA (CONFIG_GD32_CAN_TSEG1 + CONFIG_GD32_CAN_TSEG2 + 1)
-
-#ifndef CONFIG_DEBUG_CAN_INFO
-#  undef CONFIG_GD32_CAN_REGDEBUG
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -195,6 +181,35 @@ static struct can_dev_s g_can0dev =
 };
 #endif
 
+#ifdef CONFIG_GD32_CAN1
+static struct gd32_can_s g_can1priv =
+{
+  .port             = 1,
+  .can_periph       = CAN1,
+  .canrx            =
+  {
+					  GD32_IRQ_NUM(CAN1_RX0_IRQn),
+					  GD32_IRQ_NUM(CAN1_RX1_IRQn),
+  },
+  .cantx            = GD32_IRQ_NUM(CAN1_TX_IRQn),
+  .filter           = 15,
+  .baud             = CONFIG_GD32_CAN1_BAUD,
+  .gpio_rx_periph   = GPIO_CAN1_RX_PORT,
+  .gpio_rx_af       = GPIO_CAN1_RX_AF,
+  .gpio_rx_pin      = GPIO_CAN1_RX_PIN,
+  .gpio_tx_periph   = GPIO_CAN1_TX_PORT,
+  .gpio_tx_af       = GPIO_CAN1_TX_AF,
+  .gpio_tx_pin      = GPIO_CAN1_TX_PIN,
+};
+
+static struct can_dev_s g_can1dev =
+{
+  .cd_ops           = &g_canops,
+  .cd_priv          = &g_can1priv,
+};
+#endif
+
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -220,7 +235,7 @@ static uint32_t _get_can_rcu_periph(uint32_t can_periph) {
 #define CAN_RCU(can) case can: return RCU_##can
 	switch (can_periph) {
 	CAN_RCU(CAN0);		
-  CAN_RCU(CAN1);
+	CAN_RCU(CAN1);
 		default:
 		PANIC();
 	}
@@ -920,7 +935,6 @@ static int gd32can_cellinit(FAR struct gd32_can_s *priv) {
         uint32_t calc_baud = can_clk/(priv->psc * bit_time_unit);
         if (can_baud == calc_baud)
         {
-          caninfo("can_baud:%d, calc_baud:%d\n", can_baud, calc_baud);
           priv->sample_point = ((priv->sjw + priv->bs1) * 1000) / bit_time_unit;
           if (priv->sample_point >= (CONFIG_GD32_CAN_SAMPLE_POINT - 50) &&
               priv->sample_point <= (CONFIG_GD32_CAN_SAMPLE_POINT + 50))
@@ -1001,9 +1015,13 @@ found_timing:
 
 static int gd32can_filterinit(FAR struct gd32_can_s *priv) {
   can_filter_parameter_struct     can_filter;
-	caninfo ("CAN%d filter: %d\n", priv->port, priv->filter);
+  caninfo ("CAN%d filter: %d\n", priv->port, priv->filter);
 
-  can_filter.filter_number = 0;
+  if (priv->port != 0)
+  {
+	  rcu_periph_clock_enable(RCU_CAN0);
+  }
+  can_filter.filter_number = priv->filter;
   can_filter.filter_mode = CAN_FILTERMODE_MASK;
   can_filter.filter_bits = CAN_FILTERBITS_32BIT;
   can_filter.filter_list_high = 0x0000;
@@ -1014,7 +1032,7 @@ static int gd32can_filterinit(FAR struct gd32_can_s *priv) {
   can_filter.filter_enable = ENABLE;
   can_filter_init(&can_filter);
 
-	return OK;
+  return OK;
 }
 
 /****************************************************************************

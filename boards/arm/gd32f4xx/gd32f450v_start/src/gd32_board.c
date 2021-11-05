@@ -13,6 +13,9 @@ void board_early_initialize(void)
 {
 	struct can_dev_s * can0 = gd32_caninitialize(0);
 	can_register("/dev/can0", can0);
+
+	struct can_dev_s * can1 = gd32_caninitialize(1);
+	can_register("/dev/can1", can1);
 }
 
 int board_app_initialize(uintptr_t arg) {
