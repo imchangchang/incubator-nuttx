@@ -6,6 +6,7 @@ comment "U[S]ART Selection"
 config GD32_USART
 	bool
 	default n
+	select ARCH_HAVE_SERIAL_TERMIOS
 
 config GD32_USART0
 	bool "USART0"
