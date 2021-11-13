@@ -63,7 +63,10 @@
 	 /* Has been initialized and HW is setup*/
 	 bool initialized;
 
-	 uint32_t baud;
+	uint8_t parity;
+	uint8_t bits;
+	bool 	stopbits2;
+	uint32_t baud;
 
 	 const uint8_t irq;   /* IRQ associated with this USART*/
 	 const uint32_t uart_periph;
@@ -79,6 +82,7 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+static void up_set_format(struct uart_dev_s * dev);
 
 static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
@@ -140,7 +144,10 @@ static struct up_dev_s g_uart0priv =
 		.ops = &g_uart_ops,
 		.priv = &g_uart0priv,
 	}, 
-	.baud = CONFIG_UART0_BAUD,
+	.baud 	= CONFIG_UART0_BAUD,
+	.parity = CONFIG_UART0_PARITY,
+	.bits   = CONFIG_UART0_BITS,
+	.stopbits2 = CONFIG_UART0_2STOP,
 	.irq =  GD32_IRQ_NUM(USART0_IRQn),
 	.uart_periph = USART0,
 	.gpio_rx_periph = GPIO_UART0_RX_PORT,
@@ -175,8 +182,12 @@ static struct up_dev_s g_uart1priv =
 		.ops = &g_uart_ops,
 		.priv = &g_uart1priv,
 	},
-	.baud = CONFIG_UART1_BAUD,
+	.baud 	= CONFIG_UART1_BAUD,
+	.parity = CONFIG_UART1_PARITY,
+	.bits   = CONFIG_UART1_BITS,
+	.stopbits2 = CONFIG_UART1_2STOP,
 	.irq =  GD32_IRQ_NUM(USART1_IRQn),
+
 	.uart_periph = USART1,
 	.gpio_rx_periph = GPIO_UART1_RX_PORT,
 	.gpio_rx_pin 	= GPIO_UART1_RX_PIN,
@@ -210,7 +221,10 @@ static struct up_dev_s g_uart2priv =
 		.ops = &g_uart_ops,
 		.priv = &g_uart2priv,
 	},
-	.baud = CONFIG_UART2_BAUD,
+	.baud 	= CONFIG_UART2_BAUD,
+	.parity = CONFIG_UART2_PARITY,
+	.bits   = CONFIG_UART2_BITS,
+	.stopbits2 = CONFIG_UART2_2STOP,
 	.irq =  GD32_IRQ_NUM(USART2_IRQn),
 	.uart_periph = USART2,
 	.gpio_rx_periph = GPIO_UART2_RX_PORT,
@@ -246,6 +260,9 @@ static struct up_dev_s g_uart3priv =
 		.priv = &g_uart3priv,
 	},
 	.baud = CONFIG_UART3_BAUD,
+	.parity = CONFIG_UART3_PARITY,
+	.bits   = CONFIG_UART3_BITS,
+	.stopbits2 = CONFIG_UART3_2STOP,
 	.irq =  GD32_IRQ_NUM(UART3_IRQn),
 	.uart_periph = UART3,
 	.gpio_rx_periph = GPIO_UART3_RX_PORT,
@@ -281,6 +298,9 @@ static struct up_dev_s g_uart4priv =
 		.priv = &g_uart4priv,
 	},
 	.baud = CONFIG_UART4_BAUD,
+	.parity = CONFIG_UART4_PARITY,
+	.bits   = CONFIG_UART4_BITS,
+	.stopbits2 = CONFIG_UART4_2STOP,
 	.irq =  GD32_IRQ_NUM(UART4_IRQn),
 	.uart_periph = UART4,
 	.gpio_rx_periph = GPIO_UART4_RX_PORT,
@@ -318,6 +338,9 @@ static struct up_dev_s g_uart5priv =
 	.baud = CONFIG_UART5_BAUD,
 	.irq =  GD32_IRQ_NUM(USART5_IRQn),
 	.uart_periph = USART5,
+	.parity = CONFIG_UART5_PARITY,
+	.bits   = CONFIG_UART5_BITS,
+	.stopbits2 = CONFIG_UART5_2STOP,
 	.gpio_rx_periph = GPIO_UART5_RX_PORT,
 	.gpio_rx_pin 	= GPIO_UART5_RX_PIN,
 	.gpio_rx_af  	= GPIO_UART5_RX_AF,
@@ -351,6 +374,9 @@ static struct up_dev_s g_uart6priv =
 		.priv = &g_uart6priv,
 	},
 	.baud = CONFIG_UART6_BAUD,
+	.parity = CONFIG_UART6_PARITY,
+	.bits   = CONFIG_UART6_BITS,
+	.stopbits2 = CONFIG_UART6_2STOP,
 	.irq =  GD32_IRQ_NUM(UART6_IRQn),
 	.uart_periph = UART6,
 	.gpio_rx_periph = GPIO_UART6_RX_PORT,
@@ -386,6 +412,9 @@ static struct up_dev_s g_uart7priv =
 		.priv = &g_uart7priv,
 	},
 	.baud = CONFIG_UART7_BAUD,
+	.parity = CONFIG_UART7_PARITY,
+	.bits   = CONFIG_UART7_BITS,
+	.stopbits2 = CONFIG_UART7_2STOP,
 	.irq =  GD32_IRQ_NUM(UART7_IRQn),
 	.uart_periph = UART7,
 	.gpio_rx_periph = GPIO_UART7_RX_PORT,
@@ -503,6 +532,30 @@ static void up_set_clock(struct uart_dev_s *dev, bool on)
 	}
 }
 
+static void up_set_format(struct uart_dev_s * dev)
+{
+    struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
+
+    usart_baudrate_set(priv->uart_periph, priv->baud);
+
+	if (priv->bits == 9)
+		usart_word_length_set(priv->uart_periph, USART_WL_9BIT);
+	else
+		usart_word_length_set(priv->uart_periph, USART_WL_8BIT);
+
+	if (priv->parity == 0)
+		usart_parity_config(priv->uart_periph, USART_PM_NONE);
+	else if (priv->parity == 1)
+		usart_parity_config(priv->uart_periph, USART_PM_ODD);
+	else
+		usart_parity_config(priv->uart_periph, USART_PM_EVEN);
+
+	if (priv->stopbits2 == 0)
+		usart_stop_bit_set(priv->uart_periph, USART_STB_1BIT);
+	else
+		usart_stop_bit_set(priv->uart_periph, USART_STB_2BIT);
+}
+
 static int  up_setup(struct uart_dev_s *dev)
 {
     struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -520,7 +573,9 @@ static int  up_setup(struct uart_dev_s *dev)
 
 
     usart_deinit(priv->uart_periph);
-    usart_baudrate_set(priv->uart_periph, priv->baud);
+
+    up_set_format(dev);
+
     usart_receive_config(priv->uart_periph, USART_RECEIVE_ENABLE);
     usart_transmit_config(priv->uart_periph, USART_TRANSMIT_ENABLE);
     usart_enable(priv->uart_periph);
@@ -529,6 +584,7 @@ static int  up_setup(struct uart_dev_s *dev)
 
 	return OK;
 }
+
 static void up_shutdown(struct uart_dev_s *dev)
 {
     struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -584,7 +640,136 @@ static int  up_interrupt(int irq, void *context, void *arg)
 }
 static int  up_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-	return OK;
+	struct inode * inode = filep->f_inode;
+	struct uart_dev_s * dev = inode->i_private;
+	struct up_dev_s  * priv = (struct up_dev_s *)dev->priv;
+	int ret = OK;
+
+	switch(cmd)
+	{
+	case TIOCSERGSTRUCT:
+		{
+	        struct up_dev_s *user = (struct up_dev_s *)arg;
+	        if (!user)
+	          {
+	            ret = -EINVAL;
+	          }
+	        else
+	          {
+	            memcpy(user, dev, sizeof(struct up_dev_s));
+	          }
+		}
+		break;
+    case TIOCSSINGLEWIRE:
+      {
+        /* Change the TX port to be open-drain/push-pull and enable/disable
+         * half-duplex mode.
+         */
+      }
+      break;
+    case TCGETS:
+          {
+            struct termios *termiosp = (struct termios *)arg;
+
+            if (!termiosp)
+              {
+                ret = -EINVAL;
+                break;
+              }
+
+            /* Note that since we only support 8/9 bit modes and
+             * there is no way to report 9-bit mode, we always claim 8.
+             */
+
+            termiosp->c_cflag =
+              ((priv->parity != 0) ? PARENB : 0) |
+              ((priv->parity == 1) ? PARODD : 0) |
+              ((priv->stopbits2) ? CSTOPB : 0) |
+    #ifdef CONFIG_SERIAL_OFLOWCONTROL
+              ((priv->oflow) ? CCTS_OFLOW : 0) |
+    #endif
+    #ifdef CONFIG_SERIAL_IFLOWCONTROL
+              ((priv->iflow) ? CRTS_IFLOW : 0) |
+    #endif
+              CS8;
+
+            cfsetispeed(termiosp, priv->baud);
+
+            /* TODO: CCTS_IFLOW, CCTS_OFLOW */
+          }
+          break;
+
+        case TCSETS:
+          {
+            struct termios *termiosp = (struct termios *)arg;
+
+            if (!termiosp)
+              {
+                ret = -EINVAL;
+                break;
+              }
+
+            /* Perform some sanity checks before accepting any changes */
+
+            if (((termiosp->c_cflag & CSIZE) != CS8)
+    #ifdef CONFIG_SERIAL_OFLOWCONTROL
+                || ((termiosp->c_cflag & CCTS_OFLOW) && (priv->cts_gpio == 0))
+    #endif
+    #ifdef CONFIG_SERIAL_IFLOWCONTROL
+                || ((termiosp->c_cflag & CRTS_IFLOW) && (priv->rts_gpio == 0))
+    #endif
+               )
+              {
+                ret = -EINVAL;
+                break;
+              }
+
+            if (termiosp->c_cflag & PARENB)
+              {
+                priv->parity = (termiosp->c_cflag & PARODD) ? 1 : 2;
+              }
+            else
+              {
+                priv->parity = 0;
+              }
+
+            priv->stopbits2 = (termiosp->c_cflag & CSTOPB) != 0;
+    #ifdef CONFIG_SERIAL_OFLOWCONTROL
+            priv->oflow = (termiosp->c_cflag & CCTS_OFLOW) != 0;
+    #endif
+    #ifdef CONFIG_SERIAL_IFLOWCONTROL
+            priv->iflow = (termiosp->c_cflag & CRTS_IFLOW) != 0;
+    #endif
+
+            /* Note that since there is no way to request 9-bit mode
+             * and no way to support 5/6/7-bit modes, we ignore them
+             * all here.
+             */
+
+            /* Note that only cfgetispeed is used because we have knowledge
+             * that only one speed is supported.
+             */
+
+            priv->baud = cfgetispeed(termiosp);
+
+            /* Effect the changes immediately - note that we do not implement
+             * TCSADRAIN / TCSAFLUSH
+             */
+
+            usart_disable(priv->uart_periph);
+            //The baud rate can't be changed when uart is enabled.
+            up_set_format(dev);
+            usart_enable(priv->uart_periph);
+          }
+          break;
+	default:
+		ret = -ENOTTY;
+		break;
+	}
+
+
+
+	return ret;
 }
 static int  up_receive(struct uart_dev_s *dev, unsigned int *status)
 {

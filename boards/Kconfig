@@ -2179,6 +2179,12 @@ config ARCH_BOARD_GD32F450V_START
 	---help---
 		TBD
 
+config ARCH_BOARD_MH100_SPORT_V1_0
+	bool "ECOFLOW MH100 SPORT V1.0 GD32F450ZGT6"
+	depends on ARCH_CHIP_GD32F450ZG
+	---help---
+		TBD
+
 config ARCH_BOARD_CUSTOM
 	bool "Custom development board"
 	---help---
@@ -2466,6 +2472,7 @@ config ARCH_BOARD
 	default "moxa"                     if ARCH_BOARD_MOXA
 	default "spresense"                if ARCH_BOARD_SPRESENSE
 	default "gd32f450v_start"          if ARCH_BOARD_GD32F450V_START
+	default "mh100_sport_v1_0"         if ARCH_BOARD_MH100_SPORT_V1_0 
 
 comment "Common Board Options"
 
@@ -3164,6 +3171,9 @@ source "boards/risc-v/bl602/bl602evb/Kconfig"
 endif
 if ARCH_BOARD_GD32F450V_START
 source "boards/arm/gd32f4xx/gd32f450v_start/Kconfig"
+endif
+if ARCH_BOARD_MH100_SPORT_V1_0
+source "boards/arm/gd32f4xx/mh100_sport_v1_0/Kconfig"
 endif
 
 comment "Board-Common Options"

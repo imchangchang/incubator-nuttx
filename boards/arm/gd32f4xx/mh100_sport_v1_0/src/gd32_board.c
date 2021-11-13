@@ -11,8 +11,10 @@
 
 void board_early_initialize(void)
 {
+#if 0
 	struct can_dev_s * can0 = gd32_caninitialize(0);
 	can_register("/dev/can0", can0);
+#endif
 
 }
 
